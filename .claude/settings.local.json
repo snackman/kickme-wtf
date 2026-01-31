@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(forge test:*)",
+      "Bash(python:*)",
+      "Bash(\".venv\\\\Scripts\\\\python.exe\":*)",
+      "Bash(\".venv\\\\Scripts\\\\python.exe\" setup_kickme_dns.py)",
+      "Bash(vercel domains add:*)",
+      "Bash(vercel project:*)",
+      "Bash(vercel:*)"
+    ]
+  }
+}

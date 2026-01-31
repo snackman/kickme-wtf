@@ -2,7 +2,7 @@ import { createPublicClient, http, type Address } from 'viem'
 import { mainnet } from 'viem/chains'
 import { normalize } from 'viem/ens'
 
-const CACHE_KEY = 'kickme_ens_cache'
+const CACHE_KEY = 'kickme_ens_cache_v2' // v2: don't cache failures
 const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
 
 type EnsCache = {
@@ -48,7 +48,7 @@ function saveCache() {
 
 const publicClient = createPublicClient({
   chain: mainnet,
-  transport: http('https://cloudflare-eth.com'),
+  transport: http('https://eth.drpc.org'),
 })
 
 // Reverse lookup: address -> ENS name
@@ -56,18 +56,20 @@ export async function getEnsName(address: Address): Promise<string | null> {
   const cache = loadCache()
   const lowerAddr = address.toLowerCase()
 
-  if (lowerAddr in cache.addressToName) {
+  // Only use cache for successful lookups
+  if (lowerAddr in cache.addressToName && cache.addressToName[lowerAddr] !== null) {
     return cache.addressToName[lowerAddr]
   }
 
   try {
     const name = await publicClient.getEnsName({ address })
-    cache.addressToName[lowerAddr] = name
-    saveCache()
+    if (name) {
+      cache.addressToName[lowerAddr] = name
+      saveCache()
+    }
+    // Don't cache null - might be RPC failure
     return name
   } catch {
-    cache.addressToName[lowerAddr] = null
-    saveCache()
     return null
   }
 }
@@ -77,23 +79,24 @@ export async function resolveEnsName(name: string): Promise<string | null> {
   const cache = loadCache()
   const lowerName = name.toLowerCase()
 
-  if (lowerName in cache.nameToAddress) {
+  // Only use cache for successful lookups (not null)
+  if (lowerName in cache.nameToAddress && cache.nameToAddress[lowerName] !== null) {
     return cache.nameToAddress[lowerName]
   }
 
   try {
     const normalizedName = normalize(name)
     const address = await publicClient.getEnsAddress({ name: normalizedName })
-    cache.nameToAddress[lowerName] = address
     if (address) {
+      cache.nameToAddress[lowerName] = address
       // Also cache the reverse lookup
       cache.addressToName[address.toLowerCase()] = name
+      saveCache()
     }
-    saveCache()
+    // Don't cache null results - they might be RPC failures
     return address
   } catch {
-    cache.nameToAddress[lowerName] = null
-    saveCache()
+    // Don't cache errors
     return null
   }
 }
@@ -102,17 +105,19 @@ export async function resolveEnsName(name: string): Promise<string | null> {
 export function getCachedEnsName(address: Address): string | null | undefined {
   const cache = loadCache()
   const lowerAddr = address.toLowerCase()
-  if (lowerAddr in cache.addressToName) {
+  // Only return cached value if it's a successful lookup
+  if (lowerAddr in cache.addressToName && cache.addressToName[lowerAddr] !== null) {
     return cache.addressToName[lowerAddr]
   }
-  return undefined // undefined means not cached
+  return undefined // undefined means not cached or was a failed lookup
 }
 
 export function getCachedAddress(name: string): string | null | undefined {
   const cache = loadCache()
   const lowerName = name.toLowerCase()
-  if (lowerName in cache.nameToAddress) {
+  // Only return cached value if it's a successful lookup (not null)
+  if (lowerName in cache.nameToAddress && cache.nameToAddress[lowerName] !== null) {
     return cache.nameToAddress[lowerName]
   }
-  return undefined
+  return undefined // undefined means not cached or was a failed lookup
 }
