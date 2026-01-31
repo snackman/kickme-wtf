@@ -15,35 +15,41 @@ export function Victim() {
   const [signSeed] = useState(randomSeed)
 
   // Check if it's an ENS name or address
-  const isEnsName = addressParam?.endsWith('.eth')
+  const isEnsName = addressParam?.endsWith('.eth') ?? false
   const ensResolution = useEnsResolution(isEnsName ? addressParam! : '')
 
   // Determine the actual address
-  let victimAddress: Address | null = null
-  let displayName = addressParam
+  const resolvedAddress = isEnsName
+    ? (ensResolution.isValid && ensResolution.address ? ensResolution.address : null)
+    : (addressParam && isAddress(addressParam) ? addressParam : null)
 
-  if (isEnsName) {
-    if (ensResolution.isLoading) {
-      return (
-        <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-          <p style={{ color: '#888' }}>Resolving {addressParam}...</p>
-        </div>
-      )
-    }
-    if (!ensResolution.isValid || !ensResolution.address) {
-      return (
-        <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-          <h1 style={{ color: '#e74c3c' }}>{ensResolution.error || 'ENS name not found'}</h1>
-          <p style={{ color: '#888', marginTop: '12px' }}>{addressParam}</p>
-          <Link to="/" style={{ color: '#ffeb3b', marginTop: '20px', display: 'inline-block' }}>← Go back home</Link>
-        </div>
-      )
-    }
-    victimAddress = getAddress(ensResolution.address) as Address
-    displayName = addressParam
-  } else if (addressParam && isAddress(addressParam)) {
-    victimAddress = getAddress(addressParam) as Address
-  } else {
+  const victimAddress = resolvedAddress ? getAddress(resolvedAddress) as Address : undefined
+  const displayName = isEnsName ? addressParam : victimAddress
+
+  // Always call hooks unconditionally
+  const { hasSign, stickerCount, kickCount, signedAt, tokenId, isLoading, refetch } = useVictimStats(victimAddress)
+  const { events, isLoading: historyLoading } = useHistory(victimAddress)
+
+  // Now handle conditional rendering
+  if (isEnsName && ensResolution.isLoading) {
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <p style={{ color: '#888' }}>Resolving {addressParam}...</p>
+      </div>
+    )
+  }
+
+  if (isEnsName && (!ensResolution.isValid || !ensResolution.address)) {
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <h1 style={{ color: '#e74c3c' }}>{ensResolution.error || 'ENS name not found'}</h1>
+        <p style={{ color: '#888', marginTop: '12px' }}>{addressParam}</p>
+        <Link to="/" style={{ color: '#ffeb3b', marginTop: '20px', display: 'inline-block' }}>← Go back home</Link>
+      </div>
+    )
+  }
+
+  if (!victimAddress) {
     return (
       <div style={{ padding: '40px 20px', textAlign: 'center' }}>
         <h1 style={{ color: '#e74c3c' }}>Invalid Address</h1>
@@ -51,8 +57,6 @@ export function Victim() {
       </div>
     )
   }
-  const { hasSign, stickerCount, kickCount, signedAt, tokenId, isLoading, refetch } = useVictimStats(victimAddress)
-  const { events, isLoading: historyLoading } = useHistory(victimAddress)
 
   if (isLoading) {
     return (
