@@ -1,0 +1,128 @@
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
+import { baseSepolia } from 'wagmi/chains'
+import { KICKME_ADDRESS, KICKME_ABI } from '../lib/contract'
+import type { Address } from 'viem'
+
+export function useHasSign(address: Address | undefined) {
+  return useReadContract({
+    address: KICKME_ADDRESS,
+    abi: KICKME_ABI,
+    functionName: 'hasSign',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  })
+}
+
+export function useVictimStats(address: Address | undefined) {
+  const hasSign = useReadContract({
+    address: KICKME_ADDRESS,
+    abi: KICKME_ABI,
+    functionName: 'hasSign',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  })
+
+  const stickerCount = useReadContract({
+    address: KICKME_ADDRESS,
+    abi: KICKME_ABI,
+    functionName: 'getStickerCount',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && hasSign.data === true },
+  })
+
+  const kickCount = useReadContract({
+    address: KICKME_ADDRESS,
+    abi: KICKME_ABI,
+    functionName: 'kickCount',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && hasSign.data === true },
+  })
+
+  const signedAt = useReadContract({
+    address: KICKME_ADDRESS,
+    abi: KICKME_ABI,
+    functionName: 'signedAt',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && hasSign.data === true },
+  })
+
+  const tokenId = useReadContract({
+    address: KICKME_ADDRESS,
+    abi: KICKME_ABI,
+    functionName: 'tokenOfVictim',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  })
+
+  return {
+    hasSign: hasSign.data,
+    stickerCount: stickerCount.data,
+    kickCount: kickCount.data,
+    signedAt: signedAt.data,
+    tokenId: tokenId.data,
+    isLoading: hasSign.isLoading,
+    refetch: () => {
+      hasSign.refetch()
+      stickerCount.refetch()
+      kickCount.refetch()
+      signedAt.refetch()
+      tokenId.refetch()
+    },
+  }
+}
+
+export function useTokenURI(tokenId: bigint | undefined) {
+  return useReadContract({
+    address: KICKME_ADDRESS,
+    abi: KICKME_ABI,
+    functionName: 'tokenURI',
+    args: tokenId ? [tokenId] : undefined,
+    query: { enabled: !!tokenId && tokenId > 0n },
+  })
+}
+
+export function useStick() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+  const { switchChainAsync } = useSwitchChain()
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+
+  const stick = async (victim: Address, seed: bigint) => {
+    try {
+      await switchChainAsync({ chainId: baseSepolia.id })
+    } catch (e) {
+      console.log('Chain switch failed or rejected:', e)
+    }
+    writeContract({
+      address: KICKME_ADDRESS,
+      abi: KICKME_ABI,
+      functionName: 'stick',
+      args: [victim, seed],
+      chainId: baseSepolia.id,
+    })
+  }
+
+  return { stick, hash, isPending, isConfirming, isSuccess, error }
+}
+
+export function useKick() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract()
+  const { switchChainAsync } = useSwitchChain()
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+
+  const kick = async (victim: Address) => {
+    try {
+      await switchChainAsync({ chainId: baseSepolia.id })
+    } catch (e) {
+      console.log('Chain switch failed or rejected:', e)
+    }
+    writeContract({
+      address: KICKME_ADDRESS,
+      abi: KICKME_ABI,
+      functionName: 'kick',
+      args: [victim],
+      chainId: baseSepolia.id,
+    })
+  }
+
+  return { kick, hash, isPending, isConfirming, isSuccess, error }
+}

@@ -1,0 +1,23 @@
+# Compiler files
+cache/
+out/
+
+# Ignores development broadcast logs
+broadcast/
+
+# Environment variables
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# Dependencies
+node_modules/
+
+# Coverage
+lcov.info
+
+# Frontend build artifacts
+frontend/dist/
+frontend/test-results/
