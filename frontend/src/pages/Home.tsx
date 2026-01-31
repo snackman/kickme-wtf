@@ -22,11 +22,11 @@ export function Home() {
 
   return (
     <div style={{ padding: '40px 20px', maxWidth: '600px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-        <SignPreview size={280} seed={signSeed} onSeedChange={setSignSeed} />
+      <div style={{ marginBottom: '24px' }}>
+        <SignPreview size="100%" seed={signSeed} onSeedChange={setSignSeed} />
       </div>
       <h1 style={{ textAlign: 'center', marginBottom: '8px', fontSize: '48px' }}>
-        🦵 Kick Me
+        🦶 Kick Me
       </h1>
       <p style={{ textAlign: 'center', color: '#888', marginBottom: '40px' }}>
         Stick a permanent Kick Me sign on any wallet.
@@ -54,7 +54,7 @@ export function Home() {
                   🎯 This wallet has a Kick Me sign!
                 </p>
                 <p style={{ color: '#888', fontSize: '14px' }}>
-                  👥 {stickerCount?.toString() ?? '0'} stickers · 🦵 {kickCount?.toString() ?? '0'} kicks
+                  👥 {stickerCount?.toString() ?? '0'} stickers · 🦶 {kickCount?.toString() ?? '0'} kicks
                 </p>
                 <p style={{ color: '#666', fontSize: '12px', marginTop: '8px' }}>
                   Click to view full details →

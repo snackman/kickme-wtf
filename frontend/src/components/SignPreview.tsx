@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { generateSignSVG, randomSeed } from '../lib/signGenerator'
 
 type Props = {
-  size?: number
+  size?: number | string
   seed?: number
   onSeedChange?: (seed: number) => void
 }
@@ -26,12 +26,15 @@ export function SignPreview({ size = 200, seed: externalSeed, onSeedChange }: Pr
     onSeedChange?.(newSeed)
   }
 
+  const isPercentage = typeof size === 'string'
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
       <div
         style={{
           width: size,
-          height: size,
+          aspectRatio: '1 / 1',
+          ...(isPercentage ? {} : { height: size }),
           borderRadius: '12px',
           overflow: 'hidden',
           boxShadow: '0 4px 20px rgba(0,0,0,0.3)',

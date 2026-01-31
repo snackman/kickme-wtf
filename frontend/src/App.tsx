@@ -22,7 +22,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         }}
       >
         <Link to="/" style={{ color: '#ffeb3b', textDecoration: 'none', fontSize: '20px', fontWeight: 'bold' }}>
-          🦵 Kick Me
+          🦶 Kick Me
         </Link>
         <nav style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           <Link to="/leaderboard" style={{ color: '#888', textDecoration: 'none' }}>
@@ -32,12 +32,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
       <main style={{ flex: 1 }}>{children}</main>
-      <footer style={{ textAlign: 'center', padding: '20px', color: '#666', fontSize: '14px' }}>
-        A soulbound experiment on{' '}
-        <a href="https://base.org" target="_blank" rel="noopener noreferrer" style={{ color: '#888' }}>
-          Base
-        </a>
-      </footer>
+      <footer style={{ textAlign: 'center', padding: '20px', color: '#666', fontSize: '14px' }} />
     </div>
   )
 }

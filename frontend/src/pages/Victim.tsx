@@ -7,14 +7,43 @@ import { ActionButtons } from '../components/ActionButtons'
 import { History } from '../components/History'
 import { useVictimStats } from '../hooks/useKickMe'
 import { useHistory } from '../hooks/useHistory'
+import { useEnsResolution } from '../hooks/useEnsResolution'
 import { randomSeed } from '../lib/signGenerator'
 
 export function Victim() {
-  const { address } = useParams<{ address: string }>()
+  const { address: addressParam } = useParams<{ address: string }>()
   const [signSeed] = useState(randomSeed)
 
-  // Validate address
-  if (!address || !isAddress(address)) {
+  // Check if it's an ENS name or address
+  const isEnsName = addressParam?.endsWith('.eth')
+  const ensResolution = useEnsResolution(isEnsName ? addressParam! : '')
+
+  // Determine the actual address
+  let victimAddress: Address | null = null
+  let displayName = addressParam
+
+  if (isEnsName) {
+    if (ensResolution.isLoading) {
+      return (
+        <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <p style={{ color: '#888' }}>Resolving {addressParam}...</p>
+        </div>
+      )
+    }
+    if (!ensResolution.isValid || !ensResolution.address) {
+      return (
+        <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <h1 style={{ color: '#e74c3c' }}>{ensResolution.error || 'ENS name not found'}</h1>
+          <p style={{ color: '#888', marginTop: '12px' }}>{addressParam}</p>
+          <Link to="/" style={{ color: '#ffeb3b', marginTop: '20px', display: 'inline-block' }}>← Go back home</Link>
+        </div>
+      )
+    }
+    victimAddress = getAddress(ensResolution.address) as Address
+    displayName = addressParam
+  } else if (addressParam && isAddress(addressParam)) {
+    victimAddress = getAddress(addressParam) as Address
+  } else {
     return (
       <div style={{ padding: '40px 20px', textAlign: 'center' }}>
         <h1 style={{ color: '#e74c3c' }}>Invalid Address</h1>
@@ -22,8 +51,6 @@ export function Victim() {
       </div>
     )
   }
-
-  const victimAddress = getAddress(address) as Address
   const { hasSign, stickerCount, kickCount, signedAt, tokenId, isLoading, refetch } = useVictimStats(victimAddress)
   const { events, isLoading: historyLoading } = useHistory(victimAddress)
 
@@ -39,9 +66,14 @@ export function Victim() {
     return (
       <div style={{ padding: '40px 20px', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
         <h1 style={{ marginBottom: '20px' }}>No Sign Found</h1>
-        <p style={{ color: '#888', marginBottom: '8px', fontFamily: 'monospace' }}>
-          {address}
+        <p style={{ color: '#ffeb3b', marginBottom: '8px', fontSize: '24px' }}>
+          {displayName}
         </p>
+        {isEnsName && (
+          <p style={{ color: '#666', marginBottom: '8px', fontFamily: 'monospace', fontSize: '12px' }}>
+            {victimAddress}
+          </p>
+        )}
         <p style={{ color: '#888', marginBottom: '32px' }}>
           This wallet doesn't have a Kick Me sign yet.
         </p>
@@ -60,9 +92,19 @@ export function Victim() {
       </Link>
 
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <p style={{ fontFamily: 'monospace', color: '#888', marginBottom: '20px', wordBreak: 'break-all' }}>
-          {address}
+        <p style={{ color: '#ffeb3b', marginBottom: '8px', fontSize: '24px' }}>
+          {displayName}
         </p>
+        {isEnsName && (
+          <p style={{ color: '#666', marginBottom: '20px', fontFamily: 'monospace', fontSize: '12px', wordBreak: 'break-all' }}>
+            {victimAddress}
+          </p>
+        )}
+        {!isEnsName && (
+          <p style={{ fontFamily: 'monospace', color: '#888', marginBottom: '20px', wordBreak: 'break-all' }}>
+            {victimAddress}
+          </p>
+        )}
         <KickMeSign tokenId={tokenId} size={280} />
       </div>
 
