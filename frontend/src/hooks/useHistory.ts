@@ -22,8 +22,8 @@ type EventCache = {
   updatedAt: number
 }
 
-const CACHE_KEY = 'kickme_events_cache'
-const CACHE_TTL = 60 * 1000 // 1 minute - refetch if older
+const CACHE_KEY = 'kickme_events_cache_v2'
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes - refetch if older
 
 function loadCache(): EventCache | null {
   try {
@@ -58,14 +58,25 @@ const stuckEvent = KICKME_ABI.find(x => x.type === 'event' && x.name === 'Stuck'
 const kickedEvent = KICKME_ABI.find(x => x.type === 'event' && x.name === 'Kicked')!
 
 export function useHistory(victim: Address | undefined) {
-  const [events, setEvents] = useState<HistoryEvent[]>([])
+  const [events, setEvents] = useState<HistoryEvent[]>(() => {
+    // Initialize from cache immediately
+    const cache = loadCache()
+    if (cache && victim) {
+      const cached = hydrateEvents(cache.events)
+      return cached.filter(e => isAddressEqual(e.victim, victim))
+    }
+    return []
+  })
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (!victim) return
 
     const fetchHistory = async () => {
-      setIsLoading(true)
+      // Only show loading if we have no cached data
+      const cache = loadCache()
+      if (!cache) setIsLoading(true)
+
       try {
         const { events: allEvents } = await fetchAllEvents()
         // Filter for this victim
@@ -73,7 +84,7 @@ export function useHistory(victim: Address | undefined) {
         setEvents(victimEvents)
       } catch (err) {
         console.error('Error fetching history:', err)
-        setEvents([])
+        // Keep cached data on error
       }
       setIsLoading(false)
     }
@@ -172,17 +183,28 @@ async function fetchAllEvents(): Promise<{ events: HistoryEvent[], lastBlock: bi
 }
 
 export function useRecentActivity() {
-  const [events, setEvents] = useState<HistoryEvent[]>([])
+  const [events, setEvents] = useState<HistoryEvent[]>(() => {
+    // Initialize from cache immediately
+    const cache = loadCache()
+    if (cache) {
+      return hydrateEvents(cache.events).slice(0, 20)
+    }
+    return []
+  })
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     const fetchRecent = async () => {
-      setIsLoading(true)
+      // Only show loading if we have no cached data
+      const cache = loadCache()
+      if (!cache) setIsLoading(true)
+
       try {
         const { events: allEvents } = await fetchAllEvents()
         setEvents(allEvents.slice(0, 20))
       } catch (err) {
         console.error('Error fetching recent activity:', err)
+        // Keep cached data on error
       }
       setIsLoading(false)
     }
