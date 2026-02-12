@@ -1,5 +1,14 @@
 export const KICKME_ADDRESS = '0x2000DF70bb743e9A15998cb5D48ceBeDaCdbD22c' as const
 
+// Prices in wei
+export const STICK_PRICE = 420000000000000n // 0.00042 ETH
+export const KICK_PRICE = 42000000000000n   // 0.000042 ETH
+
+// Charity info
+export const CHARITY_NAME = 'Stomp Out Bullying'
+export const CHARITY_URL = 'https://www.stompoutbullying.org/'
+export const CHARITY_ADDRESS = '0xEBA2561FBA3Af152EA6Ea9523056703B72c0644E'
+
 export const KICKME_ABI = [
   {
     type: 'function',
@@ -16,7 +25,7 @@ export const KICKME_ABI = [
     name: 'kick',
     inputs: [{ name: 'victim', type: 'address' }],
     outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -83,7 +92,14 @@ export const KICKME_ABI = [
   },
   {
     type: 'function',
-    name: 'mintPrice',
+    name: 'stickPrice',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'kickPrice',
     inputs: [],
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',

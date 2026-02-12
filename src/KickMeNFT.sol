@@ -25,11 +25,14 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
 
     // ============ State Variables ============
 
-    /// @notice Price to mint (0 by default, can be set for charity donations)
-    uint256 public mintPrice;
+    /// @notice Price to stick a sign on someone (0.00042 ETH)
+    uint256 public stickPrice = 0.00042 ether;
 
-    /// @notice Address where donations are sent
-    address public charityAddress;
+    /// @notice Price to kick someone (0.000042 ETH)
+    uint256 public kickPrice = 0.000042 ether;
+
+    /// @notice Address where donations are sent (Stomp Out Bullying charity)
+    address public charityAddress = 0xEBA2561FBA3Af152EA6Ea9523056703B72c0644E;
 
     /// @notice Counter for token IDs (starts at 1, 0 means no token)
     uint256 private _nextTokenId = 1;
@@ -67,7 +70,7 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
     /// @dev If victim has no sign, mints one with the provided seed. Otherwise just adds caller to stickers list.
     function stick(address victim, uint256 seed) external payable {
         require(victim != address(0), "Cannot stick sign on zero address");
-        require(msg.value >= mintPrice, "Insufficient payment");
+        require(msg.value >= stickPrice, "Insufficient payment");
 
         if (tokenOfVictim[victim] == 0) {
             // First time - mint the sign with chosen seed
@@ -86,16 +89,29 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
         // Add sticker to the list (even if they've stuck before - let them pile on!)
         _stickers[victim].push(msg.sender);
 
+        // Send donation directly to charity
+        if (charityAddress != address(0) && msg.value > 0) {
+            (bool success,) = charityAddress.call{value: msg.value}("");
+            require(success, "Charity transfer failed");
+        }
+
         emit Stuck(victim, msg.sender);
     }
 
     /// @notice Kick someone who has a sign on their back
     /// @param victim The address to kick
-    function kick(address victim) external {
+    function kick(address victim) external payable {
         require(tokenOfVictim[victim] != 0, "Victim has no sign to kick");
+        require(msg.value >= kickPrice, "Insufficient payment");
 
         _kickers[victim].push(msg.sender);
         kickCount[victim]++;
+
+        // Send donation directly to charity
+        if (charityAddress != address(0) && msg.value > 0) {
+            (bool success,) = charityAddress.call{value: msg.value}("");
+            require(success, "Charity transfer failed");
+        }
 
         emit Kicked(victim, msg.sender, kickCount[victim]);
     }
@@ -246,10 +262,16 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
 
     // ============ Admin Functions ============
 
-    /// @notice Set the mint price (for charity donations)
+    /// @notice Set the stick price
     /// @param _price New price in wei
-    function setMintPrice(uint256 _price) external onlyOwner {
-        mintPrice = _price;
+    function setStickPrice(uint256 _price) external onlyOwner {
+        stickPrice = _price;
+    }
+
+    /// @notice Set the kick price
+    /// @param _price New price in wei
+    function setKickPrice(uint256 _price) external onlyOwner {
+        kickPrice = _price;
     }
 
     /// @notice Set the charity address for donations
@@ -259,7 +281,7 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
         charityAddress = _charity;
     }
 
-    /// @notice Withdraw collected funds to charity
+    /// @notice Withdraw any accidentally stuck funds to charity
     function withdraw() external onlyOwner {
         require(charityAddress != address(0), "Charity address not set");
         uint256 balance = address(this).balance;

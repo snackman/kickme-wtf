@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAccount } from 'wagmi'
+import { formatEther } from 'viem'
 import { useStick, useKick, useVictimStats } from '../hooks/useKickMe'
-import { KICKME_ADDRESS } from '../lib/contract'
+import { KICKME_ADDRESS, STICK_PRICE, KICK_PRICE } from '../lib/contract'
 import type { Address } from 'viem'
 
 type Props = {
@@ -176,12 +177,18 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
           color: '#000',
           cursor: stickLoading ? 'not-allowed' : 'pointer',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: '8px',
+          gap: '4px',
         }}
       >
-        <span>🖐️</span>
-        {stickLoading ? 'Sticking...' : 'Stick'}
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>🖐️</span>
+          {stickLoading ? 'Sticking...' : 'Stick'}
+        </span>
+        <span style={{ fontSize: '12px', opacity: 0.7 }}>
+          {formatEther(STICK_PRICE)} ETH
+        </span>
       </button>
 
       {hasSign && (
@@ -198,12 +205,18 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
             color: '#fff',
             cursor: kickLoading ? 'not-allowed' : 'pointer',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            gap: '8px',
+            gap: '4px',
           }}
         >
-          <span>🦵</span>
-          {kickLoading ? 'Kicking...' : 'Kick'}
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🦵</span>
+            {kickLoading ? 'Kicking...' : 'Kick'}
+          </span>
+          <span style={{ fontSize: '12px', opacity: 0.7 }}>
+            {formatEther(KICK_PRICE)} ETH
+          </span>
         </button>
       )}
     </div>

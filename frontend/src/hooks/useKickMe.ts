@@ -1,6 +1,6 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
 import { baseSepolia } from 'wagmi/chains'
-import { KICKME_ADDRESS, KICKME_ABI } from '../lib/contract'
+import { KICKME_ADDRESS, KICKME_ABI, STICK_PRICE, KICK_PRICE } from '../lib/contract'
 import type { Address } from 'viem'
 
 export function useHasSign(address: Address | undefined) {
@@ -97,6 +97,7 @@ export function useStick() {
       abi: KICKME_ABI,
       functionName: 'stick',
       args: [victim, seed],
+      value: STICK_PRICE,
       chainId: baseSepolia.id,
     })
   }
@@ -120,6 +121,7 @@ export function useKick() {
       abi: KICKME_ABI,
       functionName: 'kick',
       args: [victim],
+      value: KICK_PRICE,
       chainId: baseSepolia.id,
     })
   }

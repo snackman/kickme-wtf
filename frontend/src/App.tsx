@@ -6,6 +6,7 @@ import { ConnectButton } from './components/ConnectButton'
 import { Home } from './pages/Home'
 import { Victim } from './pages/Victim'
 import { Leaderboard } from './pages/Leaderboard'
+import { CHARITY_NAME, CHARITY_URL } from './lib/contract'
 
 const queryClient = new QueryClient()
 
@@ -32,7 +33,17 @@ function Layout({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
       <main style={{ flex: 1 }}>{children}</main>
-      <footer style={{ textAlign: 'center', padding: '20px', color: '#666', fontSize: '14px' }} />
+      <footer style={{ textAlign: 'center', padding: '20px', color: '#666', fontSize: '12px' }}>
+        All donations go to{' '}
+        <a
+          href={CHARITY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#888', textDecoration: 'underline' }}
+        >
+          {CHARITY_NAME}
+        </a>
+      </footer>
     </div>
   )
 }
