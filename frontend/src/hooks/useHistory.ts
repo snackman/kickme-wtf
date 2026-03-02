@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPublicClient, http, isAddressEqual, type Address } from 'viem'
 import { baseSepolia } from 'viem/chains'
-import { KICKME_ADDRESS, KICKME_ABI } from '../lib/contract'
+import { KICKME_ADDRESS, KICKME_ABI, KICKME_DEPLOY_BLOCK } from '../lib/contract'
 
 export type HistoryEvent = {
   type: 'stuck' | 'kicked'
@@ -95,6 +95,45 @@ export function useHistory(victim: Address | undefined) {
   return { events, isLoading }
 }
 
+// Max block range for public RPCs (publicnode allows ~5k)
+const CHUNK_SIZE = 5000n
+const BATCH_CONCURRENCY = 5
+
+// Fetch logs in chunks to avoid RPC block range limits
+async function getLogsChunked(
+  event: any,
+  fromBlock: bigint,
+  toBlock: bigint,
+): Promise<any[]> {
+  const chunks: { from: bigint; to: bigint }[] = []
+  for (let start = fromBlock; start <= toBlock; start += CHUNK_SIZE) {
+    const end = start + CHUNK_SIZE - 1n > toBlock ? toBlock : start + CHUNK_SIZE - 1n
+    chunks.push({ from: start, to: end })
+  }
+
+  const allLogs: any[] = []
+
+  // Process chunks in batches to avoid overwhelming the RPC
+  for (let i = 0; i < chunks.length; i += BATCH_CONCURRENCY) {
+    const batch = chunks.slice(i, i + BATCH_CONCURRENCY)
+    const results = await Promise.all(
+      batch.map(({ from, to }) =>
+        client.getLogs({
+          address: KICKME_ADDRESS,
+          event,
+          fromBlock: from,
+          toBlock: to,
+        })
+      )
+    )
+    for (const logs of results) {
+      allLogs.push(...logs)
+    }
+  }
+
+  return allLogs
+}
+
 // Shared event fetching with caching
 async function fetchAllEvents(): Promise<{ events: HistoryEvent[], lastBlock: bigint }> {
   const cache = loadCache()
@@ -106,23 +145,13 @@ async function fetchAllEvents(): Promise<{ events: HistoryEvent[], lastBlock: bi
     return { events: hydrateEvents(cache.events), lastBlock: BigInt(cache.lastBlock) }
   }
 
-  // Fetch from last cached block or from 0
-  const fromBlock = cache ? BigInt(cache.lastBlock) + 1n : 0n
-  console.log('Fetching events from block:', fromBlock.toString())
+  // Fetch from last cached block or from deploy block
+  const fromBlock = cache ? BigInt(cache.lastBlock) + 1n : KICKME_DEPLOY_BLOCK
+  console.log('Fetching events from block:', fromBlock.toString(), 'to:', currentBlock.toString())
 
   const [stuckLogs, kickedLogs] = await Promise.all([
-    client.getLogs({
-      address: KICKME_ADDRESS,
-      event: stuckEvent as any,
-      fromBlock,
-      toBlock: 'latest',
-    }),
-    client.getLogs({
-      address: KICKME_ADDRESS,
-      event: kickedEvent as any,
-      fromBlock,
-      toBlock: 'latest',
-    }),
+    getLogsChunked(stuckEvent, fromBlock, currentBlock),
+    getLogsChunked(kickedEvent, fromBlock, currentBlock),
   ])
 
   const newEvents: HistoryEvent[] = []
