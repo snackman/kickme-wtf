@@ -32,7 +32,7 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
     uint256 public kickPrice = 0.000042 ether;
 
     /// @notice Address where donations are sent (Stomp Out Bullying charity)
-    address public charityAddress = 0xEBA2561FBA3Af152EA6Ea9523056703B72c0644E;
+    address public charityAddress = 0x2E9FbB542eb83D57235487cCCDAd57Ae2a487029;
 
     /// @notice Counter for token IDs (starts at 1, 0 means no token)
     uint256 private _nextTokenId = 1;

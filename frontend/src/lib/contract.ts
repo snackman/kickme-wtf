@@ -7,7 +7,7 @@ export const KICK_PRICE = 42000000000000n   // 0.000042 ETH
 // Charity info
 export const CHARITY_NAME = 'Stomp Out Bullying'
 export const CHARITY_URL = 'https://www.stompoutbullying.org/'
-export const CHARITY_ADDRESS = '0xEBA2561FBA3Af152EA6Ea9523056703B72c0644E'
+export const CHARITY_ADDRESS = '0x2E9FbB542eb83D57235487cCCDAd57Ae2a487029'
 
 export const KICKME_ABI = [
   {
