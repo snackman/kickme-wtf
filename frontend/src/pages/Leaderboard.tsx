@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import { useRecentActivity } from '../hooks/useHistory'
+import { useAllEvents } from '../hooks/useHistory'
 
 export function Leaderboard() {
-  const { events, isLoading } = useRecentActivity()
+  const { events, isLoading } = useAllEvents()
 
   // Aggregate kick counts by victim
   const kicksByVictim = events

@@ -214,3 +214,33 @@ export function useRecentActivity() {
 
   return { events, isLoading }
 }
+
+export function useAllEvents() {
+  const [events, setEvents] = useState<HistoryEvent[]>(() => {
+    const cache = loadCache()
+    if (cache) {
+      return hydrateEvents(cache.events)
+    }
+    return []
+  })
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    const fetch = async () => {
+      const cache = loadCache()
+      if (!cache) setIsLoading(true)
+
+      try {
+        const { events: allEvents } = await fetchAllEvents()
+        setEvents(allEvents)
+      } catch (err) {
+        console.error('Error fetching events:', err)
+      }
+      setIsLoading(false)
+    }
+
+    fetch()
+  }, [])
+
+  return { events, isLoading }
+}
