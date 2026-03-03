@@ -95,9 +95,9 @@ export function useHistory(victim: Address | undefined) {
   return { events, isLoading }
 }
 
-// Max block range for public RPCs (publicnode allows ~5k)
-const CHUNK_SIZE = 5000n
-const BATCH_CONCURRENCY = 5
+// Max block range for public RPCs (publicnode allows 50k with explicit toBlock)
+const CHUNK_SIZE = 50000n
+const BATCH_CONCURRENCY = 3
 
 // Fetch logs in chunks to avoid RPC block range limits
 async function getLogsChunked(
