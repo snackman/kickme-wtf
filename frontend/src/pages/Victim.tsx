@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { isAddress, getAddress, type Address } from 'viem'
 import { KickMeSign } from '../components/KickMeSign'
@@ -8,6 +8,7 @@ import { History } from '../components/History'
 import { useVictimStats } from '../hooks/useKickMe'
 import { useHistory } from '../hooks/useHistory'
 import { useEnsResolution } from '../hooks/useEnsResolution'
+import { getEnsName, getCachedEnsName } from '../lib/ensCache'
 import { randomSeed } from '../lib/signGenerator'
 
 export function Victim() {
@@ -24,7 +25,22 @@ export function Victim() {
     : (addressParam && isAddress(addressParam) ? addressParam : null)
 
   const victimAddress = resolvedAddress ? getAddress(resolvedAddress) as Address : undefined
-  const displayName = isEnsName ? addressParam : victimAddress
+
+  // Reverse ENS lookup when navigated by address
+  const [reverseEns, setReverseEns] = useState<string | null>(() =>
+    victimAddress ? (getCachedEnsName(victimAddress) ?? null) : null
+  )
+  useEffect(() => {
+    if (isEnsName || !victimAddress) return
+    const cached = getCachedEnsName(victimAddress)
+    if (cached !== undefined) { setReverseEns(cached); return }
+    let cancelled = false
+    getEnsName(victimAddress).then(name => { if (!cancelled) setReverseEns(name) })
+    return () => { cancelled = true }
+  }, [victimAddress, isEnsName])
+
+  const displayName = isEnsName ? addressParam : (reverseEns || victimAddress)
+  const hasEnsName = isEnsName || !!reverseEns
 
   // Always call hooks unconditionally
   const { hasSign, stickerCount, kickCount, signedAt, tokenId, isLoading, refetch } = useVictimStats(victimAddress)
@@ -73,7 +89,7 @@ export function Victim() {
         <p style={{ color: '#ffeb3b', marginBottom: '8px', fontSize: '24px' }}>
           {displayName}
         </p>
-        {isEnsName && (
+        {hasEnsName && (
           <p style={{ color: '#666', marginBottom: '8px', fontFamily: 'monospace', fontSize: '12px' }}>
             {victimAddress}
           </p>
@@ -99,16 +115,9 @@ export function Victim() {
         <p style={{ color: '#ffeb3b', marginBottom: '8px', fontSize: '24px' }}>
           {displayName}
         </p>
-        {isEnsName && (
-          <p style={{ color: '#666', marginBottom: '20px', fontFamily: 'monospace', fontSize: '12px', wordBreak: 'break-all' }}>
-            {victimAddress}
-          </p>
-        )}
-        {!isEnsName && (
-          <p style={{ fontFamily: 'monospace', color: '#888', marginBottom: '20px', wordBreak: 'break-all' }}>
-            {victimAddress}
-          </p>
-        )}
+        <p style={{ fontFamily: 'monospace', color: '#666', marginBottom: '20px', fontSize: hasEnsName ? '12px' : '14px', wordBreak: 'break-all' }}>
+          {victimAddress}
+        </p>
         <KickMeSign tokenId={tokenId} size={280} />
       </div>
 
