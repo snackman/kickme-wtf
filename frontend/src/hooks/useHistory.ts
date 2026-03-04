@@ -13,8 +13,8 @@ export type HistoryEvent = {
   totalKicks?: bigint
 }
 
-// Serializable version for localStorage
-type CachedEvent = Omit<HistoryEvent, 'blockNumber'> & { blockNumber: string }
+// Serializable version for localStorage (bigints → strings)
+type CachedEvent = Omit<HistoryEvent, 'blockNumber' | 'totalKicks'> & { blockNumber: string; totalKicks?: string }
 
 type EventCache = {
   events: CachedEvent[]
@@ -37,7 +37,11 @@ function loadCache(): EventCache | null {
 
 function saveCache(events: HistoryEvent[], lastBlock: bigint) {
   const cached: EventCache = {
-    events: events.map(e => ({ ...e, blockNumber: e.blockNumber.toString() })),
+    events: events.map(e => ({
+      ...e,
+      blockNumber: e.blockNumber.toString(),
+      totalKicks: e.totalKicks?.toString(),
+    })),
     lastBlock: lastBlock.toString(),
     updatedAt: Date.now(),
   }
@@ -45,7 +49,11 @@ function saveCache(events: HistoryEvent[], lastBlock: bigint) {
 }
 
 function hydrateEvents(cached: CachedEvent[]): HistoryEvent[] {
-  return cached.map(e => ({ ...e, blockNumber: BigInt(e.blockNumber) }))
+  return cached.map(e => ({
+    ...e,
+    blockNumber: BigInt(e.blockNumber),
+    totalKicks: e.totalKicks ? BigInt(e.totalKicks) : undefined,
+  }))
 }
 
 const client = createPublicClient({
