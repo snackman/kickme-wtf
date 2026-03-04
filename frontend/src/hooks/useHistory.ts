@@ -11,10 +11,15 @@ export type HistoryEvent = {
   blockNumber: bigint
   transactionHash: string
   totalKicks?: bigint
+  tokenId?: bigint
 }
 
 // Serializable version for localStorage (bigints → strings)
-type CachedEvent = Omit<HistoryEvent, 'blockNumber' | 'totalKicks'> & { blockNumber: string; totalKicks?: string }
+type CachedEvent = Omit<HistoryEvent, 'blockNumber' | 'totalKicks' | 'tokenId'> & {
+  blockNumber: string
+  totalKicks?: string
+  tokenId?: string
+}
 
 type EventCache = {
   events: CachedEvent[]
@@ -22,7 +27,7 @@ type EventCache = {
   updatedAt: number
 }
 
-const CACHE_KEY = 'kickme_events_cache_v2'
+const CACHE_KEY = 'kickme_events_cache_v3'
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes - refetch if older
 
 function loadCache(): EventCache | null {
@@ -41,6 +46,7 @@ function saveCache(events: HistoryEvent[], lastBlock: bigint) {
       ...e,
       blockNumber: e.blockNumber.toString(),
       totalKicks: e.totalKicks?.toString(),
+      tokenId: e.tokenId?.toString(),
     })),
     lastBlock: lastBlock.toString(),
     updatedAt: Date.now(),
@@ -53,6 +59,7 @@ function hydrateEvents(cached: CachedEvent[]): HistoryEvent[] {
     ...e,
     blockNumber: BigInt(e.blockNumber),
     totalKicks: e.totalKicks ? BigInt(e.totalKicks) : undefined,
+    tokenId: e.tokenId ? BigInt(e.tokenId) : undefined,
   }))
 }
 
@@ -172,6 +179,7 @@ async function fetchAllEvents(): Promise<{ events: HistoryEvent[], lastBlock: bi
       timestamp: 0,
       blockNumber: log.blockNumber,
       transactionHash: log.transactionHash,
+      tokenId: log.args.tokenId,
     })
   }
 
@@ -201,11 +209,12 @@ async function fetchAllEvents(): Promise<{ events: HistoryEvent[], lastBlock: bi
   const cachedEvents = cache ? hydrateEvents(cache.events) : []
   const allEvents = [...cachedEvents, ...newEvents]
 
-  // Deduplicate by transaction hash
+  // Deduplicate by transaction hash + type (a single tx can have both Stuck and Kicked)
   const seen = new Set<string>()
   const uniqueEvents = allEvents.filter(e => {
-    if (seen.has(e.transactionHash)) return false
-    seen.add(e.transactionHash)
+    const key = `${e.transactionHash}-${e.type}`
+    if (seen.has(key)) return false
+    seen.add(key)
     return true
   })
 

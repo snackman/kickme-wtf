@@ -1,4 +1,4 @@
-export const KICKME_ADDRESS = '0x2000DF70bb743e9A15998cb5D48ceBeDaCdbD22c' as const
+export const KICKME_ADDRESS = '0x2000DF70bb743e9A15998cb5D48ceBeDACdbD22c' as const
 export const KICKME_DEPLOY_BLOCK = 37019068n // Block where the contract was deployed
 
 // Prices in wei
@@ -37,14 +37,14 @@ export const KICKME_ABI = [
   },
   {
     type: 'function',
-    name: 'tokenOfVictim',
-    inputs: [{ name: '', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }],
+    name: 'getTokenIds',
+    inputs: [{ name: 'victim', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256[]' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    name: 'getStickerCount',
+    name: 'getSignCount',
     inputs: [{ name: 'victim', type: 'address' }],
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
@@ -58,15 +58,29 @@ export const KICKME_ABI = [
   },
   {
     type: 'function',
-    name: 'signedAt',
+    name: 'firstSignedAt',
     inputs: [{ name: '', type: 'address' }],
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
-    name: 'signSeed',
-    inputs: [{ name: '', type: 'address' }],
+    name: 'stickerOfToken',
+    inputs: [{ name: '', type: 'uint256' }],
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'seedOfToken',
+    inputs: [{ name: '', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'stuckAt',
+    inputs: [{ name: '', type: 'uint256' }],
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -75,20 +89,6 @@ export const KICKME_ABI = [
     name: 'tokenURI',
     inputs: [{ name: 'tokenId', type: 'uint256' }],
     outputs: [{ name: '', type: 'string' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'getStickers',
-    inputs: [{ name: 'victim', type: 'address' }],
-    outputs: [{ name: '', type: 'address[]' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'getKickers',
-    inputs: [{ name: 'victim', type: 'address' }],
-    outputs: [{ name: '', type: 'address[]' }],
     stateMutability: 'view',
   },
   {
@@ -111,6 +111,7 @@ export const KICKME_ABI = [
     inputs: [
       { name: 'victim', type: 'address', indexed: true },
       { name: 'sticker', type: 'address', indexed: true },
+      { name: 'tokenId', type: 'uint256', indexed: false },
     ],
   },
   {

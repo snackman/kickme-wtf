@@ -43,7 +43,7 @@ export function Victim() {
   const hasEnsName = isEnsName || !!reverseEns
 
   // Always call hooks unconditionally
-  const { hasSign, stickerCount, kickCount, signedAt, tokenId, isLoading, refetch } = useVictimStats(victimAddress)
+  const { hasSign, tokenIds, signCount, kickCount, firstSignedAt, isLoading, refetch } = useVictimStats(victimAddress)
   const { events, isLoading: historyLoading } = useHistory(victimAddress)
 
   // Now handle conditional rendering
@@ -105,6 +105,10 @@ export function Victim() {
     )
   }
 
+  const tokenIdList = tokenIds ? [...tokenIds] : []
+  const isSingleSign = tokenIdList.length === 1
+  const signSize = isSingleSign ? 280 : 200
+
   return (
     <div style={{ padding: '40px 20px', maxWidth: '600px', margin: '0 auto' }}>
       <Link to="/" style={{ color: '#888', textDecoration: 'none', display: 'block', marginBottom: '20px' }}>
@@ -118,11 +122,27 @@ export function Victim() {
         <p style={{ fontFamily: 'monospace', color: '#666', marginBottom: '20px', fontSize: hasEnsName ? '12px' : '14px', wordBreak: 'break-all' }}>
           {victimAddress}
         </p>
-        <KickMeSign tokenId={tokenId} size={280} />
+
+        {isSingleSign ? (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <KickMeSign tokenId={tokenIdList[0]} size={signSize} />
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: '16px',
+            justifyItems: 'center',
+          }}>
+            {tokenIdList.map((tid) => (
+              <KickMeSign key={tid.toString()} tokenId={tid} size={signSize} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ marginBottom: '32px' }}>
-        <Stats stickerCount={stickerCount} kickCount={kickCount} signedAt={signedAt} />
+        <Stats signCount={signCount} kickCount={kickCount} firstSignedAt={firstSignedAt} />
       </div>
 
       <div style={{ marginBottom: '40px' }}>
