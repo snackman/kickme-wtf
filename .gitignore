@@ -21,3 +21,7 @@ lcov.info
 # Frontend build artifacts
 frontend/dist/
 frontend/test-results/
+
+# Bot state
+bot/bot-state.json
+bot/.env
