@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import type { Address } from 'viem'
+import { AddressDisplay } from '../components/AddressDisplay'
 import { useAllEvents } from '../hooks/useHistory'
 
 export function Leaderboard() {
@@ -34,7 +36,6 @@ export function Leaderboard() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10)
 
-  const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`
 
   return (
     <div style={{ padding: '40px 20px', maxWidth: '800px', margin: '0 auto' }}>
@@ -72,8 +73,8 @@ export function Leaderboard() {
                     <span style={{ fontSize: '20px', width: '30px' }}>
                       {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
                     </span>
-                    <span style={{ flex: 1, fontFamily: 'monospace', color: '#ffeb3b' }}>
-                      {formatAddress(addr)}
+                    <span style={{ flex: 1 }}>
+                      <AddressDisplay address={addr as Address} />
                     </span>
                     <span style={{ color: '#888' }}>{count} kicks</span>
                   </Link>
@@ -103,8 +104,8 @@ export function Leaderboard() {
                     <span style={{ fontSize: '20px', width: '30px' }}>
                       {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
                     </span>
-                    <span style={{ flex: 1, fontFamily: 'monospace', color: '#ffeb3b' }}>
-                      {formatAddress(addr)}
+                    <span style={{ flex: 1 }}>
+                      <AddressDisplay address={addr as Address} />
                     </span>
                     <span style={{ color: '#888' }}>{count} sticks</span>
                   </div>
