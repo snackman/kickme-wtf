@@ -131,32 +131,36 @@ export function Leaderboard() {
         <p style={{ textAlign: 'center', color: '#888' }}>Loading...</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
-          <LeaderboardSection
-            title="🎯 Most Stuck"
-            color="#ff9800"
-            entries={topStuck}
-            unit="signs"
-            linkToVictim
-          />
-          <LeaderboardSection
-            title="🦵 Most Kicked"
-            color="#d32f2f"
-            entries={topKicked}
-            unit="kicks"
-            linkToVictim
-          />
-          <LeaderboardSection
-            title="🖐️ Top Stickers"
-            color="#ffeb3b"
-            entries={topStickers}
-            unit="sticks"
-          />
-          <LeaderboardSection
-            title="👢 Top Kickers"
-            color="#f44336"
-            entries={topKickers}
-            unit="kicks"
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+            <LeaderboardSection
+              title="🎯 Most Stuck"
+              color="#ff9800"
+              entries={topStuck}
+              unit="signs"
+              linkToVictim
+            />
+            <LeaderboardSection
+              title="🦵 Most Kicked"
+              color="#d32f2f"
+              entries={topKicked}
+              unit="kicks"
+              linkToVictim
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+            <LeaderboardSection
+              title="🖐️ Top Stickers"
+              color="#ffeb3b"
+              entries={topStickers}
+              unit="sticks"
+            />
+            <LeaderboardSection
+              title="👢 Top Kickers"
+              color="#f44336"
+              entries={topKickers}
+              unit="kicks"
+            />
+          </div>
         </div>
       )}
     </div>
