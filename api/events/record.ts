@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { list, get, put } from '@vercel/blob'
 import { createPublicClient, http, parseEventLogs, getAddress } from 'viem'
 import { mainnet } from 'viem/chains'
+import { tweetEvents } from '../lib/twitter'
 
 const CONTRACT_ADDRESS = '0x6fCdfA445bF2752D4F38AB67F08c7eEDEfEaAed8' as const
 
@@ -223,6 +224,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       allowOverwrite: true,
       contentType: 'application/json',
     })
+
+    // Tweet about new events (don't fail the response if tweeting fails)
+    try {
+      await tweetEvents(uniqueNewEvents)
+    } catch (err) {
+      console.error('Tweet failed:', err)
+    }
 
     return res.status(200).json({
       message: 'Events recorded',
