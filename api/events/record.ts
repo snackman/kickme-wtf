@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { get, put } from '@vercel/blob'
+import { list, get, put } from '@vercel/blob'
 import { createPublicClient, http, parseEventLogs, getAddress } from 'viem'
 import { mainnet } from 'viem/chains'
 
@@ -87,8 +87,8 @@ function getRpcUrl(): string {
 
 async function readCurrentBlob(): Promise<EventsBlob> {
   try {
-    const blob = await get('events.json', { access: 'private' })
-    if (!blob) {
+    const { blobs } = await list({ prefix: 'events.json', limit: 1 })
+    if (blobs.length === 0) {
       return {
         events: [],
         leaderboard: { mostStuck: [], mostKicked: [], topStickers: [], topKickers: [] },
@@ -97,6 +97,8 @@ async function readCurrentBlob(): Promise<EventsBlob> {
         eventCount: 0,
       }
     }
+    const blob = await get(blobs[0].url, { access: 'private' })
+    if (!blob) throw new Error('Blob fetch failed')
     return await blob.json() as EventsBlob
   } catch {
     return {
