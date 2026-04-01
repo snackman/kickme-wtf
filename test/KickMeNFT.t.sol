@@ -14,9 +14,12 @@ contract KickMeNFTTest is Test {
     address public victim = address(5);
     address public charity = address(6);
 
-    event Stuck(address indexed victim, address indexed sticker);
+    event Stuck(address indexed victim, address indexed sticker, uint256 tokenId);
     event Kicked(address indexed victim, address indexed kicker, uint256 totalKicks);
     event Locked(uint256 tokenId);
+    event StickPriceChanged(uint256 newPrice);
+    event KickPriceChanged(uint256 newPrice);
+    event CharityAddressChanged(address newCharity);
 
     function setUp() public {
         vm.prank(owner);
@@ -30,19 +33,16 @@ contract KickMeNFTTest is Test {
         vm.prank(alice);
         vm.expectEmit(true, true, false, false);
         emit Locked(1);
-        vm.expectEmit(true, true, false, false);
-        emit Stuck(victim, alice);
+        vm.expectEmit(true, true, false, true);
+        emit Stuck(victim, alice, 1);
         nft.stick{value: 0.00042 ether}(victim, 12345);
 
-        assertEq(nft.tokenOfVictim(victim), 1);
         assertEq(nft.ownerOf(1), victim);
         assertEq(nft.balanceOf(victim), 1);
         assertTrue(nft.hasSign(victim));
-        assertEq(nft.getStickerCount(victim), 1);
-
-        address[] memory stickers = nft.getStickers(victim);
-        assertEq(stickers.length, 1);
-        assertEq(stickers[0], alice);
+        assertEq(nft.getSignCount(victim), 1);
+        assertEq(nft.stickerOfToken(1), alice);
+        assertEq(nft.seedOfToken(1), 12345);
     }
 
     function test_StickMultipleTimes() public {
@@ -51,39 +51,42 @@ contract KickMeNFTTest is Test {
         vm.deal(charlie, 1 ether);
 
         vm.prank(alice);
-        nft.stick{value: 0.00042 ether}(victim, 12345);
+        nft.stick{value: 0.00042 ether}(victim, 11111);
 
         vm.prank(bob);
-        vm.expectEmit(true, true, false, false);
-        emit Stuck(victim, bob);
-        nft.stick{value: 0.00042 ether}(victim, 12345);
+        vm.expectEmit(true, true, false, true);
+        emit Stuck(victim, bob, 2);
+        nft.stick{value: 0.00042 ether}(victim, 22222);
 
         vm.prank(charlie);
-        nft.stick{value: 0.00042 ether}(victim, 12345);
+        nft.stick{value: 0.00042 ether}(victim, 33333);
 
-        // Still only one token
-        assertEq(nft.balanceOf(victim), 1);
-        assertEq(nft.tokenOfVictim(victim), 1);
+        // Three tokens minted
+        assertEq(nft.balanceOf(victim), 3);
+        assertEq(nft.getSignCount(victim), 3);
 
-        // But three stickers
-        assertEq(nft.getStickerCount(victim), 3);
+        // Each token has its own sticker
+        assertEq(nft.stickerOfToken(1), alice);
+        assertEq(nft.stickerOfToken(2), bob);
+        assertEq(nft.stickerOfToken(3), charlie);
 
-        address[] memory stickers = nft.getStickers(victim);
-        assertEq(stickers[0], alice);
-        assertEq(stickers[1], bob);
-        assertEq(stickers[2], charlie);
+        // Each token has its own seed
+        assertEq(nft.seedOfToken(1), 11111);
+        assertEq(nft.seedOfToken(2), 22222);
+        assertEq(nft.seedOfToken(3), 33333);
     }
 
     function test_StickSamePersonMultipleTimes() public {
         vm.deal(alice, 1 ether);
         vm.startPrank(alice);
-        nft.stick{value: 0.00042 ether}(victim, 12345);
-        nft.stick{value: 0.00042 ether}(victim, 12345);
-        nft.stick{value: 0.00042 ether}(victim, 12345);
+        nft.stick{value: 0.00042 ether}(victim, 11111);
+        nft.stick{value: 0.00042 ether}(victim, 22222);
+        nft.stick{value: 0.00042 ether}(victim, 33333);
         vm.stopPrank();
 
-        // Same person can stick multiple times (piling on!)
-        assertEq(nft.getStickerCount(victim), 3);
+        // Same person can stick multiple times, each gets a new token
+        assertEq(nft.getSignCount(victim), 3);
+        assertEq(nft.balanceOf(victim), 3);
     }
 
     function test_StickOnYourself() public {
@@ -93,6 +96,7 @@ contract KickMeNFTTest is Test {
 
         assertEq(nft.ownerOf(1), alice);
         assertTrue(nft.hasSign(alice));
+        assertEq(nft.stickerOfToken(1), alice);
     }
 
     function test_StickOnZeroAddressReverts() public {
@@ -122,6 +126,115 @@ contract KickMeNFTTest is Test {
         nft.stick{value: 0.0001 ether}(victim, 12345);
     }
 
+    // ============ Multi-Sign Specific Tests ============
+
+    function test_EachSignHasOwnSeed() public {
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
+
+        vm.prank(alice);
+        nft.stick{value: 0.00042 ether}(victim, 11111);
+
+        vm.prank(bob);
+        nft.stick{value: 0.00042 ether}(victim, 22222);
+
+        assertEq(nft.seedOfToken(1), 11111);
+        assertEq(nft.seedOfToken(2), 22222);
+
+        // Each token produces different tokenURI since they have different seeds
+        string memory uri1 = nft.tokenURI(1);
+        string memory uri2 = nft.tokenURI(2);
+        assertTrue(keccak256(bytes(uri1)) != keccak256(bytes(uri2)));
+    }
+
+    function test_MultipleSignsShareKickCount() public {
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
+        vm.deal(charlie, 1 ether);
+
+        // Two signs on victim
+        vm.prank(alice);
+        nft.stick{value: 0.00042 ether}(victim, 11111);
+        vm.prank(bob);
+        nft.stick{value: 0.00042 ether}(victim, 22222);
+
+        // One kick applies to the victim (shared across signs)
+        vm.prank(charlie);
+        nft.kick{value: 0.000042 ether}(victim);
+
+        assertEq(nft.kickCount(victim), 1);
+        // Kick count is per-victim, not per-token
+        assertEq(nft.getSignCount(victim), 2);
+    }
+
+    function test_GetTokenIds() public {
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
+
+        vm.prank(alice);
+        nft.stick{value: 0.00042 ether}(victim, 11111);
+        vm.prank(bob);
+        nft.stick{value: 0.00042 ether}(victim, 22222);
+
+        uint256[] memory tokenIds = nft.getTokenIds(victim);
+        assertEq(tokenIds.length, 2);
+        assertEq(tokenIds[0], 1);
+        assertEq(tokenIds[1], 2);
+    }
+
+    function test_StickerOfToken() public {
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
+
+        vm.prank(alice);
+        nft.stick{value: 0.00042 ether}(victim, 11111);
+        vm.prank(bob);
+        nft.stick{value: 0.00042 ether}(victim, 22222);
+
+        assertEq(nft.stickerOfToken(1), alice);
+        assertEq(nft.stickerOfToken(2), bob);
+    }
+
+    function test_FirstSignedAtOnlySetOnce() public {
+        uint256 timestamp1 = 1000000;
+        uint256 timestamp2 = 2000000;
+
+        vm.deal(alice, 1 ether);
+        vm.deal(bob, 1 ether);
+
+        vm.warp(timestamp1);
+        vm.prank(alice);
+        nft.stick{value: 0.00042 ether}(victim, 11111);
+
+        vm.warp(timestamp2);
+        vm.prank(bob);
+        nft.stick{value: 0.00042 ether}(victim, 22222);
+
+        // firstSignedAt should be the first sign's timestamp
+        assertEq(nft.firstSignedAt(victim), timestamp1);
+
+        // But each token has its own stuckAt
+        assertEq(nft.stuckAt(1), timestamp1);
+        assertEq(nft.stuckAt(2), timestamp2);
+    }
+
+    function test_GetSignCount() public {
+        vm.deal(alice, 1 ether);
+
+        assertEq(nft.getSignCount(victim), 0);
+
+        vm.startPrank(alice);
+        nft.stick{value: 0.00042 ether}(victim, 11111);
+        assertEq(nft.getSignCount(victim), 1);
+
+        nft.stick{value: 0.00042 ether}(victim, 22222);
+        assertEq(nft.getSignCount(victim), 2);
+
+        nft.stick{value: 0.00042 ether}(victim, 33333);
+        assertEq(nft.getSignCount(victim), 3);
+        vm.stopPrank();
+    }
+
     // ============ Kick Tests ============
 
     function test_Kick() public {
@@ -136,10 +249,6 @@ contract KickMeNFTTest is Test {
         nft.kick{value: 0.000042 ether}(victim);
 
         assertEq(nft.kickCount(victim), 1);
-
-        address[] memory kickers = nft.getKickers(victim);
-        assertEq(kickers.length, 1);
-        assertEq(kickers[0], bob);
     }
 
     function test_KickMultipleTimes() public {
@@ -158,9 +267,6 @@ contract KickMeNFTTest is Test {
         nft.kick{value: 0.000042 ether}(victim);
 
         assertEq(nft.kickCount(victim), 3);
-
-        address[] memory kickers = nft.getKickers(victim);
-        assertEq(kickers.length, 3);
     }
 
     function test_KickWithoutSignReverts() public {
@@ -303,6 +409,8 @@ contract KickMeNFTTest is Test {
 
     function test_SetStickPrice() public {
         vm.prank(owner);
+        vm.expectEmit(false, false, false, true);
+        emit StickPriceChanged(0.1 ether);
         nft.setStickPrice(0.1 ether);
 
         assertEq(nft.stickPrice(), 0.1 ether);
@@ -316,6 +424,8 @@ contract KickMeNFTTest is Test {
 
     function test_SetKickPrice() public {
         vm.prank(owner);
+        vm.expectEmit(false, false, false, true);
+        emit KickPriceChanged(0.01 ether);
         nft.setKickPrice(0.01 ether);
 
         assertEq(nft.kickPrice(), 0.01 ether);
@@ -338,6 +448,8 @@ contract KickMeNFTTest is Test {
 
     function test_SetCharityAddress() public {
         vm.prank(owner);
+        vm.expectEmit(false, false, false, true);
+        emit CharityAddressChanged(charity);
         nft.setCharityAddress(charity);
 
         assertEq(nft.charityAddress(), charity);
@@ -388,10 +500,6 @@ contract KickMeNFTTest is Test {
         assertFalse(nft.hasSign(victim));
     }
 
-    function test_TokenOfVictimZeroWhenNoSign() public view {
-        assertEq(nft.tokenOfVictim(victim), 0);
-    }
-
     function test_VictimOfToken() public {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
@@ -400,7 +508,7 @@ contract KickMeNFTTest is Test {
         assertEq(nft.victimOfToken(1), victim);
     }
 
-    function test_SignedAt() public {
+    function test_StuckAt() public {
         uint256 timestamp = 1234567890;
         vm.warp(timestamp);
 
@@ -408,38 +516,40 @@ contract KickMeNFTTest is Test {
         vm.prank(alice);
         nft.stick{value: 0.00042 ether}(victim, 12345);
 
-        assertEq(nft.signedAt(victim), timestamp);
+        assertEq(nft.stuckAt(1), timestamp);
     }
 
-    // ============ Sign Seed Tests ============
+    function test_FirstSignedAt() public {
+        uint256 timestamp = 1234567890;
+        vm.warp(timestamp);
 
-    function test_SignSeedStoredOnMint() public {
-        uint256 chosenSeed = 99999;
         vm.deal(alice, 1 ether);
         vm.prank(alice);
-        nft.stick{value: 0.00042 ether}(victim, chosenSeed);
+        nft.stick{value: 0.00042 ether}(victim, 12345);
 
-        assertEq(nft.signSeed(victim), chosenSeed);
+        assertEq(nft.firstSignedAt(victim), timestamp);
     }
 
-    function test_SignSeedNotChangedByAdditionalStickers() public {
+    // ============ Multiple Victims Tests ============
+
+    function test_MultipleVictims() public {
         vm.deal(alice, 1 ether);
-        vm.deal(bob, 1 ether);
-        vm.deal(charlie, 1 ether);
 
-        uint256 originalSeed = 11111;
         vm.prank(alice);
-        nft.stick{value: 0.00042 ether}(victim, originalSeed);
+        nft.stick{value: 0.00042 ether}(bob, 12345);
 
-        // Additional stickers try different seeds - should be ignored
-        vm.prank(bob);
-        nft.stick{value: 0.00042 ether}(victim, 22222);
+        vm.prank(alice);
+        nft.stick{value: 0.00042 ether}(charlie, 54321);
 
-        vm.prank(charlie);
-        nft.stick{value: 0.00042 ether}(victim, 33333);
+        uint256[] memory bobTokens = nft.getTokenIds(bob);
+        uint256[] memory charlieTokens = nft.getTokenIds(charlie);
 
-        // Original seed should be preserved
-        assertEq(nft.signSeed(victim), originalSeed);
+        assertEq(bobTokens.length, 1);
+        assertEq(charlieTokens.length, 1);
+        assertEq(bobTokens[0], 1);
+        assertEq(charlieTokens[0], 2);
+        assertEq(nft.ownerOf(1), bob);
+        assertEq(nft.ownerOf(2), charlie);
     }
 
     function test_DifferentSeedsProduceDifferentSigns() public {
@@ -458,28 +568,6 @@ contract KickMeNFTTest is Test {
 
         // URIs should be different (different seeds = different appearance)
         assertTrue(keccak256(bytes(uri1)) != keccak256(bytes(uri2)));
-    }
-
-    function test_SignSeedZeroWhenNoSign() public view {
-        // Seed should be 0 for addresses without a sign
-        assertEq(nft.signSeed(victim), 0);
-    }
-
-    // ============ Multiple Victims Tests ============
-
-    function test_MultipleVictims() public {
-        vm.deal(alice, 1 ether);
-
-        vm.prank(alice);
-        nft.stick{value: 0.00042 ether}(bob, 12345);
-
-        vm.prank(alice);
-        nft.stick{value: 0.00042 ether}(charlie, 12345);
-
-        assertEq(nft.tokenOfVictim(bob), 1);
-        assertEq(nft.tokenOfVictim(charlie), 2);
-        assertEq(nft.ownerOf(1), bob);
-        assertEq(nft.ownerOf(2), charlie);
     }
 
     // ============ Helper Functions ============

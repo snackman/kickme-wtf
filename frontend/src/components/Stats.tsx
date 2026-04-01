@@ -1,10 +1,10 @@
 type Props = {
-  stickerCount: bigint | undefined
+  signCount: bigint | undefined
   kickCount: bigint | undefined
-  signedAt: bigint | undefined
+  firstSignedAt: bigint | undefined
 }
 
-export function Stats({ stickerCount, kickCount, signedAt }: Props) {
+export function Stats({ signCount, kickCount, firstSignedAt }: Props) {
   const formatDate = (timestamp: bigint | undefined) => {
     if (!timestamp) return '---'
     return new Date(Number(timestamp) * 1000).toLocaleDateString()
@@ -14,7 +14,7 @@ export function Stats({ stickerCount, kickCount, signedAt }: Props) {
     <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
       <StatBox
         icon="👥"
-        value={stickerCount?.toString() ?? '0'}
+        value={signCount?.toString() ?? '0'}
         label="Signs"
       />
       <StatBox
@@ -24,7 +24,7 @@ export function Stats({ stickerCount, kickCount, signedAt }: Props) {
       />
       <StatBox
         icon="📅"
-        value={formatDate(signedAt)}
+        value={formatDate(firstSignedAt)}
         label="First Stuck"
       />
     </div>

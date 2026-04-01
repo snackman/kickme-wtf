@@ -36,7 +36,6 @@ export function Leaderboard() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10)
 
-
   return (
     <div style={{ padding: '40px 20px', maxWidth: '800px', margin: '0 auto' }}>
       <Link to="/" style={{ color: '#888', textDecoration: 'none', display: 'block', marginBottom: '20px' }}>

@@ -5,23 +5,33 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./IERC5192.sol";
 import {KickMeDoodleRenderer} from "./KickMeDoodleRenderer.sol";
 
 /// @title Kick Me NFT - A Soulbound "Kick Me" Sign
-/// @notice A non-transferable NFT that anyone can stick on any wallet. Once stuck, it's there forever.
+/// @notice A non-transferable NFT that anyone can stick on any wallet. Every stick mints a new sign.
 /// @dev Implements ERC-721 + ERC-5192 (Soulbound). Cannot be transferred or burned.
-contract KickMeNFT is ERC721, IERC5192, Ownable {
+contract KickMeNFT is ERC721, IERC5192, Ownable, ReentrancyGuard {
     using Strings for uint256;
     using Strings for address;
 
     // ============ Events ============
 
     /// @notice Emitted when a sign is stuck on a victim
-    event Stuck(address indexed victim, address indexed sticker);
+    event Stuck(address indexed victim, address indexed sticker, uint256 tokenId);
 
     /// @notice Emitted when someone kicks a victim
     event Kicked(address indexed victim, address indexed kicker, uint256 totalKicks);
+
+    /// @notice Emitted when the stick price is changed
+    event StickPriceChanged(uint256 newPrice);
+
+    /// @notice Emitted when the kick price is changed
+    event KickPriceChanged(uint256 newPrice);
+
+    /// @notice Emitted when the charity address is changed
+    event CharityAddressChanged(address newCharity);
 
     // ============ State Variables ============
 
@@ -37,26 +47,26 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
     /// @notice Counter for token IDs (starts at 1, 0 means no token)
     uint256 private _nextTokenId = 1;
 
-    /// @notice Maps victim address to their token ID (0 = no sign)
-    mapping(address => uint256) public tokenOfVictim;
-
-    /// @notice Maps victim address to list of addresses who stuck signs on them
-    mapping(address => address[]) private _stickers;
-
-    /// @notice Maps victim address to list of addresses who kicked them
-    mapping(address => address[]) private _kickers;
-
     /// @notice Maps victim address to total kick count
     mapping(address => uint256) public kickCount;
-
-    /// @notice Maps victim address to timestamp when first signed
-    mapping(address => uint256) public signedAt;
 
     /// @notice Maps token ID to victim address (reverse lookup)
     mapping(uint256 => address) public victimOfToken;
 
-    /// @notice Maps victim address to their sign's visual seed (chosen by first sticker)
-    mapping(address => uint256) public signSeed;
+    /// @notice Maps victim address to all their token IDs
+    mapping(address => uint256[]) private _tokenIds;
+
+    /// @notice Maps token ID to the address that stuck the sign
+    mapping(uint256 => address) public stickerOfToken;
+
+    /// @notice Maps token ID to its visual seed
+    mapping(uint256 => uint256) public seedOfToken;
+
+    /// @notice Maps token ID to timestamp when it was stuck
+    mapping(uint256 => uint256) public stuckAt;
+
+    /// @notice Maps victim address to timestamp when first sign was stuck
+    mapping(address => uint256) public firstSignedAt;
 
     // ============ Constructor ============
 
@@ -64,30 +74,30 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
 
     // ============ Core Functions ============
 
-    /// @notice Stick a "Kick Me" sign on someone's back
+    /// @notice Stick a "Kick Me" sign on someone's back (always mints a new NFT)
     /// @param victim The address to stick the sign on
-    /// @param seed The visual seed for the sign (only used when minting new sign)
-    /// @dev If victim has no sign, mints one with the provided seed. Otherwise just adds caller to stickers list.
-    function stick(address victim, uint256 seed) external payable {
+    /// @param seed The visual seed for the sign
+    function stick(address victim, uint256 seed) external payable nonReentrant {
         require(victim != address(0), "Cannot stick sign on zero address");
         require(msg.value >= stickPrice, "Insufficient payment");
 
-        if (tokenOfVictim[victim] == 0) {
-            // First time - mint the sign with chosen seed
-            uint256 tokenId = _nextTokenId++;
-            tokenOfVictim[victim] = tokenId;
-            victimOfToken[tokenId] = victim;
-            signedAt[victim] = block.timestamp;
-            signSeed[victim] = seed;
+        // Mint a new sign every time
+        uint256 tokenId = _nextTokenId++;
+        victimOfToken[tokenId] = victim;
+        stickerOfToken[tokenId] = msg.sender;
+        seedOfToken[tokenId] = seed;
+        stuckAt[tokenId] = block.timestamp;
+        _tokenIds[victim].push(tokenId);
 
-            _safeMint(victim, tokenId);
-
-            // Emit ERC-5192 Locked event
-            emit Locked(tokenId);
+        // Set firstSignedAt only on the first sign
+        if (firstSignedAt[victim] == 0) {
+            firstSignedAt[victim] = block.timestamp;
         }
 
-        // Add sticker to the list (even if they've stuck before - let them pile on!)
-        _stickers[victim].push(msg.sender);
+        _safeMint(victim, tokenId);
+
+        // Emit ERC-5192 Locked event
+        emit Locked(tokenId);
 
         // Send donation directly to charity
         if (charityAddress != address(0) && msg.value > 0) {
@@ -95,16 +105,15 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
             require(success, "Charity transfer failed");
         }
 
-        emit Stuck(victim, msg.sender);
+        emit Stuck(victim, msg.sender, tokenId);
     }
 
     /// @notice Kick someone who has a sign on their back
     /// @param victim The address to kick
-    function kick(address victim) external payable {
-        require(tokenOfVictim[victim] != 0, "Victim has no sign to kick");
+    function kick(address victim) external payable nonReentrant {
+        require(_tokenIds[victim].length > 0, "Victim has no sign to kick");
         require(msg.value >= kickPrice, "Insufficient payment");
 
-        _kickers[victim].push(msg.sender);
         kickCount[victim]++;
 
         // Send donation directly to charity
@@ -120,30 +129,23 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
 
     /// @notice Check if an address has a Kick Me sign
     /// @param victim The address to check
-    /// @return True if the address has a sign
+    /// @return True if the address has at least one sign
     function hasSign(address victim) external view returns (bool) {
-        return tokenOfVictim[victim] != 0;
+        return _tokenIds[victim].length > 0;
     }
 
-    /// @notice Get all addresses who stuck signs on a victim
+    /// @notice Get all token IDs for a victim
     /// @param victim The victim address
-    /// @return Array of sticker addresses
-    function getStickers(address victim) external view returns (address[] memory) {
-        return _stickers[victim];
+    /// @return Array of token IDs
+    function getTokenIds(address victim) external view returns (uint256[] memory) {
+        return _tokenIds[victim];
     }
 
-    /// @notice Get the number of people who stuck signs on a victim
+    /// @notice Get the number of signs stuck on a victim
     /// @param victim The victim address
-    /// @return Number of stickers
-    function getStickerCount(address victim) external view returns (uint256) {
-        return _stickers[victim].length;
-    }
-
-    /// @notice Get all addresses who kicked a victim
-    /// @param victim The victim address
-    /// @return Array of kicker addresses
-    function getKickers(address victim) external view returns (address[] memory) {
-        return _kickers[victim];
+    /// @return Number of signs
+    function getSignCount(address victim) external view returns (uint256) {
+        return _tokenIds[victim].length;
     }
 
     // ============ ERC-5192 Soulbound Implementation ============
@@ -194,20 +196,20 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
         require(_ownerOf(tokenId) != address(0), "Token does not exist");
 
         address victim = victimOfToken[tokenId];
-        uint256 stickers = _stickers[victim].length;
+        uint256 signCount = _tokenIds[victim].length;
         uint256 kicks = kickCount[victim];
-        uint256 timestamp = signedAt[victim];
+        uint256 timestamp = stuckAt[tokenId];
 
-        // Use the seed chosen by the first sticker (permanent visual identity)
-        bytes32 salt = keccak256(abi.encodePacked(signSeed[victim]));
+        // Use the seed for this specific token
+        bytes32 salt = keccak256(abi.encodePacked(seedOfToken[tokenId]));
 
-        string memory json = _buildMetadataJSON(tokenId, stickers, kicks, timestamp, salt);
+        string memory json = _buildMetadataJSON(tokenId, signCount, kicks, timestamp, salt);
         return string(abi.encodePacked("data:application/json;base64,", json));
     }
 
     function _buildMetadataJSON(
         uint256 tokenId,
-        uint256 stickers,
+        uint256 signs,
         uint256 kicks,
         uint256 timestamp,
         bytes32 salt
@@ -215,19 +217,19 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
         string memory svg = KickMeDoodleRenderer.renderSVG(tokenId, salt);
         string memory imageData = Base64.encode(bytes(svg));
 
-        string memory part1 = _buildJSONPart1(tokenId, stickers, kicks);
-        string memory part2 = _buildJSONPart2(imageData, stickers, kicks, timestamp);
+        string memory part1 = _buildJSONPart1(tokenId, signs, kicks);
+        string memory part2 = _buildJSONPart2(imageData, signs, kicks, timestamp);
 
         return Base64.encode(bytes(string(abi.encodePacked(part1, part2))));
     }
 
-    function _buildJSONPart1(uint256 tokenId, uint256 stickers, uint256 kicks) internal pure returns (string memory) {
+    function _buildJSONPart1(uint256 tokenId, uint256 signs, uint256 kicks) internal pure returns (string memory) {
         return string(abi.encodePacked(
             '{"name":"Kick Me Sign #',
             tokenId.toString(),
             '","description":"A soulbound Kick Me sign stuck on this wallet forever. ',
-            stickers.toString(),
-            " people stuck it, ",
+            signs.toString(),
+            " signs stuck, ",
             kicks.toString(),
             ' kicks received.",'
         ));
@@ -235,7 +237,7 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
 
     function _buildJSONPart2(
         string memory imageData,
-        uint256 stickers,
+        uint256 signs,
         uint256 kicks,
         uint256 timestamp
     ) internal pure returns (string memory) {
@@ -244,17 +246,17 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
             imageData,
             '",'
         ));
-        string memory attrPart = _buildAttributes(stickers, kicks, timestamp);
+        string memory attrPart = _buildAttributes(signs, kicks, timestamp);
         return string(abi.encodePacked(imgPart, attrPart));
     }
 
-    function _buildAttributes(uint256 stickers, uint256 kicks, uint256 timestamp) internal pure returns (string memory) {
+    function _buildAttributes(uint256 signs, uint256 kicks, uint256 timestamp) internal pure returns (string memory) {
         return string(abi.encodePacked(
-            '"attributes":[{"trait_type":"Stickers","value":',
-            stickers.toString(),
+            '"attributes":[{"trait_type":"Signs","value":',
+            signs.toString(),
             '},{"trait_type":"Kicks","value":',
             kicks.toString(),
-            '},{"trait_type":"Signed At","display_type":"date","value":',
+            '},{"trait_type":"Stuck At","display_type":"date","value":',
             timestamp.toString(),
             "}]}"
         ));
@@ -266,12 +268,14 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
     /// @param _price New price in wei
     function setStickPrice(uint256 _price) external onlyOwner {
         stickPrice = _price;
+        emit StickPriceChanged(_price);
     }
 
     /// @notice Set the kick price
     /// @param _price New price in wei
     function setKickPrice(uint256 _price) external onlyOwner {
         kickPrice = _price;
+        emit KickPriceChanged(_price);
     }
 
     /// @notice Set the charity address for donations
@@ -279,11 +283,11 @@ contract KickMeNFT is ERC721, IERC5192, Ownable {
     function setCharityAddress(address _charity) external onlyOwner {
         require(_charity != address(0), "Invalid charity address");
         charityAddress = _charity;
+        emit CharityAddressChanged(_charity);
     }
 
     /// @notice Withdraw any accidentally stuck funds to charity
     function withdraw() external onlyOwner {
-        require(charityAddress != address(0), "Charity address not set");
         uint256 balance = address(this).balance;
         require(balance > 0, "No funds to withdraw");
 

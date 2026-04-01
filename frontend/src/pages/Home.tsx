@@ -13,7 +13,7 @@ export function Home() {
   const navigate = useNavigate()
   const [targetAddress, setTargetAddress] = useState<Address | null>(null)
   const [signSeed, setSignSeed] = useState(randomSeed)
-  const { hasSign, stickerCount, kickCount, isLoading, refetch } = useVictimStats(targetAddress ?? undefined)
+  const { hasSign, signCount, kickCount, isLoading, refetch } = useVictimStats(targetAddress ?? undefined)
   const { events: recentEvents, isLoading: recentLoading } = useRecentActivity()
 
   const handleAddressResolved = useCallback((address: Address | null) => {
@@ -54,7 +54,7 @@ export function Home() {
                   🎯 This wallet has a Kick Me sign!
                 </p>
                 <p style={{ color: '#888', fontSize: '14px' }}>
-                  👥 {stickerCount?.toString() ?? '0'} stickers · 🦶 {kickCount?.toString() ?? '0'} kicks
+                  👥 {signCount?.toString() ?? '0'} signs · 🦶 {kickCount?.toString() ?? '0'} kicks
                 </p>
                 <p style={{ color: '#666', fontSize: '12px', marginTop: '8px' }}>
                   Click to view full details →

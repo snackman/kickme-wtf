@@ -22,10 +22,18 @@ export function useVictimStats(address: Address | undefined) {
     query: { enabled: !!address },
   })
 
-  const stickerCount = useReadContract({
+  const tokenIds = useReadContract({
     address: KICKME_ADDRESS,
     abi: KICKME_ABI,
-    functionName: 'getStickerCount',
+    functionName: 'getTokenIds',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && hasSign.data === true },
+  })
+
+  const signCount = useReadContract({
+    address: KICKME_ADDRESS,
+    abi: KICKME_ABI,
+    functionName: 'getSignCount',
     args: address ? [address] : undefined,
     query: { enabled: !!address && hasSign.data === true },
   })
@@ -38,35 +46,27 @@ export function useVictimStats(address: Address | undefined) {
     query: { enabled: !!address && hasSign.data === true },
   })
 
-  const signedAt = useReadContract({
+  const firstSignedAt = useReadContract({
     address: KICKME_ADDRESS,
     abi: KICKME_ABI,
-    functionName: 'signedAt',
+    functionName: 'firstSignedAt',
     args: address ? [address] : undefined,
     query: { enabled: !!address && hasSign.data === true },
   })
 
-  const tokenId = useReadContract({
-    address: KICKME_ADDRESS,
-    abi: KICKME_ABI,
-    functionName: 'tokenOfVictim',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
-  })
-
   return {
     hasSign: hasSign.data,
-    stickerCount: stickerCount.data,
+    tokenIds: tokenIds.data as readonly bigint[] | undefined,
+    signCount: signCount.data,
     kickCount: kickCount.data,
-    signedAt: signedAt.data,
-    tokenId: tokenId.data,
+    firstSignedAt: firstSignedAt.data,
     isLoading: hasSign.isLoading,
     refetch: () => {
       hasSign.refetch()
-      stickerCount.refetch()
+      tokenIds.refetch()
+      signCount.refetch()
       kickCount.refetch()
-      signedAt.refetch()
-      tokenId.refetch()
+      firstSignedAt.refetch()
     },
   }
 }

@@ -1,0 +1,17 @@
+{
+  "name": "kickme-tweet-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx tweet-bot.ts",
+    "watch": "tsx tweet-bot.ts --watch"
+  },
+  "dependencies": {
+    "twitter-api-v2": "^1.17.0",
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -16,7 +16,7 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
   const { isConnected } = useAccount()
   const { stick, isPending: stickPending, isConfirming: stickConfirming, isSuccess: stickSuccess, hash: stickHash } = useStick()
   const { kick, isPending: kickPending, isConfirming: kickConfirming, isSuccess: kickSuccess } = useKick()
-  const { tokenId, refetch } = useVictimStats(victim)
+  const { tokenIds, refetch } = useVictimStats(victim)
   const [showSuccess, setShowSuccess] = useState(false)
   const [successTokenId, setSuccessTokenId] = useState<bigint | null>(null)
   const hasHandledSuccess = useRef(false)
@@ -34,12 +34,12 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
     }
   }, [stickSuccess, onSuccess, refetch])
 
-  // Update tokenId when it changes
+  // Update tokenId when tokenIds change (use the latest/last one)
   useEffect(() => {
-    if (tokenId && tokenId > 0n) {
-      setSuccessTokenId(tokenId)
+    if (tokenIds && tokenIds.length > 0) {
+      setSuccessTokenId(tokenIds[tokenIds.length - 1])
     }
-  }, [tokenId])
+  }, [tokenIds])
 
   // Handle successful kick
   useEffect(() => {
@@ -68,7 +68,8 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
   const kickLoading = kickPending || kickConfirming
 
   // Show success state with OpenSea link
-  const displayTokenId = successTokenId || tokenId
+  const latestTokenId = tokenIds && tokenIds.length > 0 ? tokenIds[tokenIds.length - 1] : undefined
+  const displayTokenId = successTokenId || latestTokenId
   if (showSuccess || stickConfirming) {
     const openseaUrl = displayTokenId
       ? `https://testnets.opensea.io/assets/base-sepolia/${KICKME_ADDRESS}/${displayTokenId}`
