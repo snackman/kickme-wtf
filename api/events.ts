@@ -60,11 +60,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (blobs.length === 0) {
         blobData = EMPTY_BLOB
       } else {
-        const blob = await get(blobs[0].url, { access: 'private' })
-        if (!blob) {
+        const response = await get(blobs[0].url, { access: 'private' })
+        if (!response || response.statusCode !== 200) {
           blobData = EMPTY_BLOB
         } else {
-          blobData = await blob.json() as EventsBlob
+          const text = await new Response(response.stream).text()
+          blobData = JSON.parse(text) as EventsBlob
         }
       }
     } catch {

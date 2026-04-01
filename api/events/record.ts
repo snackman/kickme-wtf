@@ -97,9 +97,10 @@ async function readCurrentBlob(): Promise<EventsBlob> {
         eventCount: 0,
       }
     }
-    const blob = await get(blobs[0].url, { access: 'private' })
-    if (!blob) throw new Error('Blob fetch failed')
-    return await blob.json() as EventsBlob
+    const response = await get(blobs[0].url, { access: 'private' })
+    if (!response || response.statusCode !== 200) throw new Error('Blob fetch failed')
+    const text = await new Response(response.stream).text()
+    return JSON.parse(text) as EventsBlob
   } catch {
     return {
       events: [],
