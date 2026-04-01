@@ -2,7 +2,9 @@ import { useEffect, useState, useRef } from 'react'
 import { useAccount } from 'wagmi'
 import { formatEther } from 'viem'
 import { useStick, useKick, useVictimStats } from '../hooks/useKickMe'
-import { KICKME_ADDRESS, STICK_PRICE, KICK_PRICE } from '../lib/contract'
+import { useEthPrice } from '../hooks/useEthPrice'
+import { KICKME_ADDRESS } from '../lib/contract'
+import { getStickPrice, getKickPrice, STICK_USD, KICK_USD } from '../lib/pricing'
 import type { Address } from 'viem'
 
 type Props = {
@@ -17,6 +19,9 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
   const { stick, isPending: stickPending, isConfirming: stickConfirming, isSuccess: stickSuccess, hash: stickHash } = useStick()
   const { kick, isPending: kickPending, isConfirming: kickConfirming, isSuccess: kickSuccess } = useKick()
   const { tokenIds, refetch } = useVictimStats(victim)
+  const { price: ethUsdPrice } = useEthPrice()
+  const effectiveStickPrice = getStickPrice(ethUsdPrice)
+  const effectiveKickPrice = getKickPrice(ethUsdPrice)
   const [showSuccess, setShowSuccess] = useState(false)
   const [successTokenId, setSuccessTokenId] = useState<bigint | null>(null)
   const hasHandledSuccess = useRef(false)
@@ -166,7 +171,7 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
   return (
     <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
       <button
-        onClick={() => stick(victim, BigInt(signSeed))}
+        onClick={() => stick(victim, BigInt(signSeed), effectiveStickPrice)}
         disabled={stickLoading}
         style={{
           padding: '16px 32px',
@@ -187,14 +192,17 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
           <span>🖐️</span>
           {stickLoading ? 'Sticking...' : 'Stick'}
         </span>
-        <span style={{ fontSize: '12px', opacity: 0.7 }}>
-          {formatEther(STICK_PRICE)} ETH
+        <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+          ${STICK_USD.toFixed(2)}
+        </span>
+        <span style={{ fontSize: '11px', opacity: 0.5 }}>
+          ~{formatEther(effectiveStickPrice)} ETH
         </span>
       </button>
 
       {hasSign && (
         <button
-          onClick={() => kick(victim)}
+          onClick={() => kick(victim, effectiveKickPrice)}
           disabled={kickLoading}
           style={{
             padding: '16px 32px',
@@ -215,8 +223,11 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
             <span>🦵</span>
             {kickLoading ? 'Kicking...' : 'Kick'}
           </span>
-          <span style={{ fontSize: '12px', opacity: 0.7 }}>
-            {formatEther(KICK_PRICE)} ETH
+          <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+            ${KICK_USD.toFixed(2)}
+          </span>
+          <span style={{ fontSize: '11px', opacity: 0.5 }}>
+            ~{formatEther(effectiveKickPrice)} ETH
           </span>
         </button>
       )}
