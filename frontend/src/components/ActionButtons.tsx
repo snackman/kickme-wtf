@@ -7,6 +7,15 @@ import { KICKME_ADDRESS } from '../lib/contract'
 import { getStickPrice, getKickPrice, STICK_USD, KICK_USD } from '../lib/pricing'
 import type { Address } from 'viem'
 
+// Fire-and-forget: record event in Vercel Blob storage
+function recordEvent(transactionHash: string) {
+  fetch('/api/events/record', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transactionHash }),
+  }).catch(console.error)
+}
+
 type Props = {
   victim: Address
   hasSign: boolean
@@ -17,7 +26,7 @@ type Props = {
 export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
   const { isConnected } = useAccount()
   const { stick, isPending: stickPending, isConfirming: stickConfirming, isSuccess: stickSuccess, hash: stickHash } = useStick()
-  const { kick, isPending: kickPending, isConfirming: kickConfirming, isSuccess: kickSuccess } = useKick()
+  const { kick, isPending: kickPending, isConfirming: kickConfirming, isSuccess: kickSuccess, hash: kickHash } = useKick()
   const { tokenIds, refetch } = useVictimStats(victim)
   const { price: ethUsdPrice } = useEthPrice()
   const effectiveStickPrice = getStickPrice(ethUsdPrice)
@@ -30,6 +39,8 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
   useEffect(() => {
     if (stickSuccess && !hasHandledSuccess.current) {
       hasHandledSuccess.current = true
+      // Record event in blob storage (fire-and-forget)
+      if (stickHash) recordEvent(stickHash)
       // Wait a bit for the blockchain to index, then refetch
       setTimeout(async () => {
         await refetch()
@@ -37,7 +48,7 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
         onSuccess?.()
       }, 2000)
     }
-  }, [stickSuccess, onSuccess, refetch])
+  }, [stickSuccess, stickHash, onSuccess, refetch])
 
   // Update tokenId when tokenIds change (use the latest/last one)
   useEffect(() => {
@@ -49,10 +60,12 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
   // Handle successful kick
   useEffect(() => {
     if (kickSuccess) {
+      // Record event in blob storage (fire-and-forget)
+      if (kickHash) recordEvent(kickHash)
       refetch()
       onSuccess?.()
     }
-  }, [kickSuccess, onSuccess, refetch])
+  }, [kickSuccess, kickHash, onSuccess, refetch])
 
   // Reset handler when victim changes
   useEffect(() => {

@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { createPublicClient, http, isAddressEqual, type Address } from 'viem'
-import { mainnet } from 'viem/chains'
-import { rpcUrl } from '../lib/wagmi'
-import { KICKME_ADDRESS, KICKME_ABI, KICKME_DEPLOY_BLOCK } from '../lib/contract'
+import { isAddressEqual, type Address } from 'viem'
+import { KICKME_ADDRESS } from '../lib/contract'
 
 export type HistoryEvent = {
   type: 'stuck' | 'kicked'
@@ -15,7 +13,32 @@ export type HistoryEvent = {
   tokenId?: bigint
 }
 
-// Serializable version for localStorage (bigints → strings)
+// API response types (plain numbers, not bigints)
+type ApiEvent = {
+  type: 'stuck' | 'kicked'
+  victim: string
+  actor: string
+  timestamp: number
+  blockNumber: number
+  transactionHash: string
+  totalKicks?: number
+  tokenId?: number
+}
+
+type ApiResponse = {
+  events: ApiEvent[]
+  leaderboard: {
+    mostStuck: [string, number][]
+    mostKicked: [string, number][]
+    topStickers: [string, number][]
+    topKickers: [string, number][]
+  }
+  lastBlock: number
+  updatedAt: number
+  eventCount: number
+}
+
+// Serializable version for localStorage (bigints -> strings)
 type CachedEvent = Omit<HistoryEvent, 'blockNumber' | 'totalKicks' | 'tokenId'> & {
   blockNumber: string
   totalKicks?: string
@@ -29,7 +52,7 @@ type EventCache = {
 }
 
 const CACHE_KEY = `kickme_events_${KICKME_ADDRESS}`
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes - refetch if older
+const CACHE_TTL = 30 * 1000 // 30 seconds — matches API CDN cache
 
 function loadCache(): EventCache | null {
   try {
@@ -58,20 +81,64 @@ function saveCache(events: HistoryEvent[], lastBlock: bigint) {
 function hydrateEvents(cached: CachedEvent[]): HistoryEvent[] {
   return cached.map(e => ({
     ...e,
+    victim: e.victim as Address,
+    actor: e.actor as Address,
     blockNumber: BigInt(e.blockNumber),
     totalKicks: e.totalKicks ? BigInt(e.totalKicks) : undefined,
     tokenId: e.tokenId ? BigInt(e.tokenId) : undefined,
   }))
 }
 
-const client = createPublicClient({
-  chain: mainnet,
-  transport: http(rpcUrl),
-})
+function apiEventToHistoryEvent(e: ApiEvent): HistoryEvent {
+  return {
+    type: e.type,
+    victim: e.victim as Address,
+    actor: e.actor as Address,
+    timestamp: e.timestamp,
+    blockNumber: BigInt(e.blockNumber),
+    transactionHash: e.transactionHash,
+    totalKicks: e.totalKicks != null ? BigInt(e.totalKicks) : undefined,
+    tokenId: e.tokenId != null ? BigInt(e.tokenId) : undefined,
+  }
+}
 
-// Event ABIs
-const stuckEvent = KICKME_ABI.find(x => x.type === 'event' && x.name === 'Stuck')!
-const kickedEvent = KICKME_ABI.find(x => x.type === 'event' && x.name === 'Kicked')!
+// Fetch events from the API (replaces RPC-based fetching)
+async function fetchAllEvents(forceRefresh = false): Promise<{ events: HistoryEvent[], lastBlock: bigint }> {
+  const cache = loadCache()
+
+  // Use cache if fresh enough (unless force refresh)
+  if (!forceRefresh && cache && (Date.now() - cache.updatedAt) < CACHE_TTL) {
+    console.log('Using cached events:', cache.events.length)
+    return { events: hydrateEvents(cache.events), lastBlock: BigInt(cache.lastBlock) }
+  }
+
+  try {
+    const response = await fetch('/api/events')
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data: ApiResponse = await response.json()
+    const events = data.events.map(apiEventToHistoryEvent)
+    const lastBlock = BigInt(data.lastBlock)
+
+    // Save to localStorage cache
+    saveCache(events, lastBlock)
+    console.log('Fetched', events.length, 'events from API')
+
+    return { events, lastBlock }
+  } catch (err) {
+    console.error('Error fetching from API:', err)
+
+    // Fall back to cache on error
+    if (cache) {
+      console.log('Falling back to cached events:', cache.events.length)
+      return { events: hydrateEvents(cache.events), lastBlock: BigInt(cache.lastBlock) }
+    }
+
+    return { events: [], lastBlock: 0n }
+  }
+}
 
 export function useHistory(victim: Address | undefined) {
   const [events, setEvents] = useState<HistoryEvent[]>(() => {
@@ -112,124 +179,6 @@ export function useHistory(victim: Address | undefined) {
   const refetch = () => setRefreshCount(c => c + 1)
 
   return { events, isLoading, refetch }
-}
-
-// Max block range for public RPCs (publicnode allows 50k with explicit toBlock)
-const CHUNK_SIZE = 50000n
-const BATCH_CONCURRENCY = 3
-
-// Fetch logs in chunks to avoid RPC block range limits
-async function getLogsChunked(
-  event: any,
-  fromBlock: bigint,
-  toBlock: bigint,
-): Promise<any[]> {
-  const chunks: { from: bigint; to: bigint }[] = []
-  for (let start = fromBlock; start <= toBlock; start += CHUNK_SIZE) {
-    const end = start + CHUNK_SIZE - 1n > toBlock ? toBlock : start + CHUNK_SIZE - 1n
-    chunks.push({ from: start, to: end })
-  }
-
-  const allLogs: any[] = []
-
-  // Process chunks in batches to avoid overwhelming the RPC
-  for (let i = 0; i < chunks.length; i += BATCH_CONCURRENCY) {
-    const batch = chunks.slice(i, i + BATCH_CONCURRENCY)
-    const results = await Promise.all(
-      batch.map(({ from, to }) =>
-        client.getLogs({
-          address: KICKME_ADDRESS,
-          event,
-          fromBlock: from,
-          toBlock: to,
-        })
-      )
-    )
-    for (const logs of results) {
-      allLogs.push(...logs)
-    }
-  }
-
-  return allLogs
-}
-
-// Shared event fetching with caching
-async function fetchAllEvents(forceRefresh = false): Promise<{ events: HistoryEvent[], lastBlock: bigint }> {
-  const cache = loadCache()
-  const currentBlock = await client.getBlockNumber()
-
-  // Use cache if fresh enough (unless force refresh)
-  if (!forceRefresh && cache && (Date.now() - cache.updatedAt) < CACHE_TTL) {
-    console.log('Using cached events:', cache.events.length)
-    return { events: hydrateEvents(cache.events), lastBlock: BigInt(cache.lastBlock) }
-  }
-
-  // Fetch from last cached block or from deploy block
-  const fromBlock = cache ? BigInt(cache.lastBlock) + 1n : KICKME_DEPLOY_BLOCK
-  console.log('Fetching events from block:', fromBlock.toString(), 'to:', currentBlock.toString())
-
-  const [stuckLogs, kickedLogs] = await Promise.all([
-    getLogsChunked(stuckEvent, fromBlock, currentBlock),
-    getLogsChunked(kickedEvent, fromBlock, currentBlock),
-  ])
-
-  const newEvents: HistoryEvent[] = []
-
-  for (const log of stuckLogs as any[]) {
-    newEvents.push({
-      type: 'stuck',
-      victim: log.args.victim,
-      actor: log.args.sticker,
-      timestamp: 0,
-      blockNumber: log.blockNumber,
-      transactionHash: log.transactionHash,
-      tokenId: log.args.tokenId,
-    })
-  }
-
-  for (const log of kickedLogs as any[]) {
-    newEvents.push({
-      type: 'kicked',
-      victim: log.args.victim,
-      actor: log.args.kicker,
-      timestamp: 0,
-      blockNumber: log.blockNumber,
-      transactionHash: log.transactionHash,
-      totalKicks: log.args.totalKicks,
-    })
-  }
-
-  // Fetch timestamps for new events
-  if (newEvents.length > 0) {
-    const blocks = await Promise.all(
-      newEvents.map(e => client.getBlock({ blockNumber: e.blockNumber }))
-    )
-    newEvents.forEach((e, i) => {
-      e.timestamp = Number(blocks[i].timestamp)
-    })
-  }
-
-  // Merge with cached events
-  const cachedEvents = cache ? hydrateEvents(cache.events) : []
-  const allEvents = [...cachedEvents, ...newEvents]
-
-  // Deduplicate by transaction hash + type (a single tx can have both Stuck and Kicked)
-  const seen = new Set<string>()
-  const uniqueEvents = allEvents.filter(e => {
-    const key = `${e.transactionHash}-${e.type}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-
-  // Sort by timestamp descending
-  uniqueEvents.sort((a, b) => b.timestamp - a.timestamp)
-
-  // Save to cache
-  saveCache(uniqueEvents, currentBlock)
-  console.log('Cached', uniqueEvents.length, 'events up to block', currentBlock.toString())
-
-  return { events: uniqueEvents, lastBlock: currentBlock }
 }
 
 export function useRecentActivity() {
@@ -279,7 +228,7 @@ export function useAllEvents() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    const fetch = async () => {
+    const doFetch = async () => {
       const cache = loadCache()
       if (!cache) setIsLoading(true)
 
@@ -292,7 +241,7 @@ export function useAllEvents() {
       setIsLoading(false)
     }
 
-    fetch()
+    doFetch()
   }, [])
 
   return { events, isLoading }
