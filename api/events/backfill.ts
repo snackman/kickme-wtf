@@ -149,7 +149,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       transport: http(getRpcUrl()),
     })
 
-    const currentBlock = await client.getBlockNumber()
+    const latestBlock = await client.getBlockNumber()
+    const currentBlock = latestBlock - 10n // buffer for RPC indexing lag
     console.log(`Backfilling from block ${DEPLOY_BLOCK} to ${currentBlock}`)
 
     // Fetch all logs
