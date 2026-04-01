@@ -1,5 +1,5 @@
-export const KICKME_ADDRESS = '0xC8Dc7ABfB29C01Ae4ad681CB025cb0bE60848ac3' as const
-export const KICKME_DEPLOY_BLOCK = 39643901n // Block where the contract was deployed
+export const KICKME_ADDRESS = '0x6fCdfA445bF2752D4F38AB67F08c7eEDEfEaAed8' as const
+export const KICKME_DEPLOY_BLOCK = 24785768n // Block where the contract was deployed
 
 // Prices in wei
 export const STICK_PRICE = 4200000000000000n // 0.0042 ETH

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPublicClient, http, isAddressEqual, type Address } from 'viem'
-import { baseSepolia } from 'viem/chains'
+import { mainnet } from 'viem/chains'
 import { KICKME_ADDRESS, KICKME_ABI, KICKME_DEPLOY_BLOCK } from '../lib/contract'
 
 export type HistoryEvent = {
@@ -64,8 +64,8 @@ function hydrateEvents(cached: CachedEvent[]): HistoryEvent[] {
 }
 
 const client = createPublicClient({
-  chain: baseSepolia,
-  transport: http('https://base-sepolia-rpc.publicnode.com'),
+  chain: mainnet,
+  transport: http('https://eth.drpc.org'),
 })
 
 // Event ABIs

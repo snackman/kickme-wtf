@@ -1,12 +1,12 @@
 import { http, createConfig } from 'wagmi'
-import { baseSepolia } from 'wagmi/chains'
+import { mainnet } from 'wagmi/chains'
 import { injected } from 'wagmi/connectors'
 
 export const config = createConfig({
-  chains: [baseSepolia],
+  chains: [mainnet],
   connectors: [injected()],
   transports: {
-    [baseSepolia.id]: http('https://base-sepolia-rpc.publicnode.com'),
+    [mainnet.id]: http('https://eth.drpc.org'),
   },
 })
 

@@ -1,5 +1,5 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
-import { baseSepolia } from 'wagmi/chains'
+import { mainnet } from 'wagmi/chains'
 import { KICKME_ADDRESS, KICKME_ABI, STICK_PRICE, KICK_PRICE } from '../lib/contract'
 import type { Address } from 'viem'
 
@@ -9,7 +9,7 @@ export function useHasSign(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'hasSign',
     args: address ? [address] : undefined,
-    chainId: baseSepolia.id,
+    chainId: mainnet.id,
     query: { enabled: !!address },
   })
 }
@@ -20,7 +20,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'hasSign',
     args: address ? [address] : undefined,
-    chainId: baseSepolia.id,
+    chainId: mainnet.id,
     query: { enabled: !!address },
   })
 
@@ -29,7 +29,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'getTokenIds',
     args: address ? [address] : undefined,
-    chainId: baseSepolia.id,
+    chainId: mainnet.id,
     query: { enabled: !!address && hasSign.data === true },
   })
 
@@ -38,7 +38,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'getSignCount',
     args: address ? [address] : undefined,
-    chainId: baseSepolia.id,
+    chainId: mainnet.id,
     query: { enabled: !!address && hasSign.data === true },
   })
 
@@ -47,7 +47,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'kickCount',
     args: address ? [address] : undefined,
-    chainId: baseSepolia.id,
+    chainId: mainnet.id,
     query: { enabled: !!address && hasSign.data === true },
   })
 
@@ -56,7 +56,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'firstSignedAt',
     args: address ? [address] : undefined,
-    chainId: baseSepolia.id,
+    chainId: mainnet.id,
     query: { enabled: !!address && hasSign.data === true },
   })
 
@@ -83,7 +83,7 @@ export function useTokenURI(tokenId: bigint | undefined) {
     abi: KICKME_ABI,
     functionName: 'tokenURI',
     args: tokenId ? [tokenId] : undefined,
-    chainId: baseSepolia.id,
+    chainId: mainnet.id,
     query: { enabled: !!tokenId && tokenId > 0n },
   })
 }
@@ -95,7 +95,7 @@ export function useStick() {
 
   const stick = async (victim: Address, seed: bigint) => {
     try {
-      await switchChainAsync({ chainId: baseSepolia.id })
+      await switchChainAsync({ chainId: mainnet.id })
     } catch (e) {
       console.log('Chain switch failed or rejected:', e)
     }
@@ -105,7 +105,7 @@ export function useStick() {
       functionName: 'stick',
       args: [victim, seed],
       value: STICK_PRICE,
-      chainId: baseSepolia.id,
+      chainId: mainnet.id,
     })
   }
 
@@ -119,7 +119,7 @@ export function useKick() {
 
   const kick = async (victim: Address) => {
     try {
-      await switchChainAsync({ chainId: baseSepolia.id })
+      await switchChainAsync({ chainId: mainnet.id })
     } catch (e) {
       console.log('Chain switch failed or rejected:', e)
     }
@@ -129,7 +129,7 @@ export function useKick() {
       functionName: 'kick',
       args: [victim],
       value: KICK_PRICE,
-      chainId: baseSepolia.id,
+      chainId: mainnet.id,
     })
   }
 

@@ -72,9 +72,9 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
   const displayTokenId = successTokenId || latestTokenId
   if (showSuccess || stickConfirming) {
     const openseaUrl = displayTokenId
-      ? `https://testnets.opensea.io/assets/base-sepolia/${KICKME_ADDRESS}/${displayTokenId}`
+      ? `https://opensea.io/assets/ethereum/${KICKME_ADDRESS}/${displayTokenId}`
       : null
-    const basescanUrl = stickHash ? `https://sepolia.basescan.org/tx/${stickHash}` : null
+    const etherscanUrl = stickHash ? `https://etherscan.io/tx/${stickHash}` : null
 
     if (stickConfirming) {
       return (
@@ -82,14 +82,14 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
           <p style={{ color: '#ffeb3b', fontSize: '20px' }}>
             ⏳ Confirming transaction...
           </p>
-          {basescanUrl && (
+          {etherscanUrl && (
             <a
-              href={basescanUrl}
+              href={etherscanUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: '#888', fontSize: '14px' }}
             >
-              View on BaseScan →
+              View on Etherscan →
             </a>
           )}
         </div>
@@ -124,9 +124,9 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
               View on OpenSea →
             </a>
           )}
-          {basescanUrl && (
+          {etherscanUrl && (
             <a
-              href={basescanUrl}
+              href={etherscanUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{
