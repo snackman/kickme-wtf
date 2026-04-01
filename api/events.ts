@@ -60,7 +60,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (blobs.length === 0) {
         blobData = EMPTY_BLOB
       } else {
-        const response = await fetch(blobs[0].url)
+        const response = await fetch(blobs[0].url, {
+          headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+        })
         if (!response.ok) {
           blobData = EMPTY_BLOB
         } else {
