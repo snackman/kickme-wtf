@@ -218,6 +218,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Write back to blob
     await put('events.json', JSON.stringify(updatedBlob), {
       access: 'public',
+      allowPublicAccessOnPrivateStore: true,
       addRandomSuffix: false,
       contentType: 'application/json',
     })
