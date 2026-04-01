@@ -9,6 +9,7 @@ export function useHasSign(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'hasSign',
     args: address ? [address] : undefined,
+    chainId: baseSepolia.id,
     query: { enabled: !!address },
   })
 }
@@ -19,6 +20,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'hasSign',
     args: address ? [address] : undefined,
+    chainId: baseSepolia.id,
     query: { enabled: !!address },
   })
 
@@ -27,6 +29,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'getTokenIds',
     args: address ? [address] : undefined,
+    chainId: baseSepolia.id,
     query: { enabled: !!address && hasSign.data === true },
   })
 
@@ -35,6 +38,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'getSignCount',
     args: address ? [address] : undefined,
+    chainId: baseSepolia.id,
     query: { enabled: !!address && hasSign.data === true },
   })
 
@@ -43,6 +47,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'kickCount',
     args: address ? [address] : undefined,
+    chainId: baseSepolia.id,
     query: { enabled: !!address && hasSign.data === true },
   })
 
@@ -51,6 +56,7 @@ export function useVictimStats(address: Address | undefined) {
     abi: KICKME_ABI,
     functionName: 'firstSignedAt',
     args: address ? [address] : undefined,
+    chainId: baseSepolia.id,
     query: { enabled: !!address && hasSign.data === true },
   })
 
@@ -77,6 +83,7 @@ export function useTokenURI(tokenId: bigint | undefined) {
     abi: KICKME_ABI,
     functionName: 'tokenURI',
     args: tokenId ? [tokenId] : undefined,
+    chainId: baseSepolia.id,
     query: { enabled: !!tokenId && tokenId > 0n },
   })
 }
