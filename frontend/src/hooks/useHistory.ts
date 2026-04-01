@@ -83,6 +83,7 @@ export function useHistory(victim: Address | undefined) {
     return []
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [refreshCount, setRefreshCount] = useState(0)
 
   useEffect(() => {
     if (!victim) return
@@ -91,6 +92,11 @@ export function useHistory(victim: Address | undefined) {
       // Only show loading if we have no cached data
       const cache = loadCache()
       if (!cache) setIsLoading(true)
+
+      // Invalidate cache on manual refresh
+      if (refreshCount > 0 && cache) {
+        cache.updatedAt = 0
+      }
 
       try {
         const { events: allEvents } = await fetchAllEvents()
@@ -105,9 +111,11 @@ export function useHistory(victim: Address | undefined) {
     }
 
     fetchHistory()
-  }, [victim])
+  }, [victim, refreshCount])
 
-  return { events, isLoading }
+  const refetch = () => setRefreshCount(c => c + 1)
+
+  return { events, isLoading, refetch }
 }
 
 // Max block range for public RPCs (publicnode allows 50k with explicit toBlock)

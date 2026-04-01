@@ -44,7 +44,7 @@ export function Victim() {
 
   // Always call hooks unconditionally
   const { hasSign, tokenIds, signCount, kickCount, firstSignedAt, isLoading, refetch } = useVictimStats(victimAddress)
-  const { events, isLoading: historyLoading } = useHistory(victimAddress)
+  const { events, isLoading: historyLoading, refetch: refetchHistory } = useHistory(victimAddress)
 
   // Now handle conditional rendering
   if (isEnsName && ensResolution.isLoading) {
@@ -97,7 +97,7 @@ export function Victim() {
         <p style={{ color: '#888', marginBottom: '32px' }}>
           This wallet doesn't have a Kick Me sign yet.
         </p>
-        <ActionButtons victim={victimAddress} hasSign={false} signSeed={signSeed} onSuccess={refetch} />
+        <ActionButtons victim={victimAddress} hasSign={false} signSeed={signSeed} onSuccess={() => { refetch(); refetchHistory(); }} />
         <div style={{ marginTop: '32px' }}>
           <Link to="/" style={{ color: '#ffeb3b' }}>← Go back home</Link>
         </div>
@@ -146,7 +146,7 @@ export function Victim() {
       </div>
 
       <div style={{ marginBottom: '40px' }}>
-        <ActionButtons victim={victimAddress} hasSign={true} signSeed={signSeed} onSuccess={refetch} />
+        <ActionButtons victim={victimAddress} hasSign={true} signSeed={signSeed} onSuccess={() => { refetch(); refetchHistory(); }} />
       </div>
 
       <div>
