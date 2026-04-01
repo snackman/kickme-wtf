@@ -1,4 +1,4 @@
-export const KICKME_ADDRESS = '0x2000DF70bb743e9A15998cb5D48ceBeDACdbD22c' as const
+export const KICKME_ADDRESS = '0x2000DF70bb743e9A15998cb5D48ceBeDaCdbD22c' as const
 export const KICKME_DEPLOY_BLOCK = 37019068n // Block where the contract was deployed
 
 // Prices in wei
