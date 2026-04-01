@@ -81,10 +81,7 @@ function computeLeaderboard(events: StoredEvent[]) {
 }
 
 function getRpcUrl(): string {
-  const alchemyKey = process.env.VITE_ALCHEMY_KEY || process.env.ALCHEMY_KEY
-  if (alchemyKey) {
-    return `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`
-  }
+  // Use publicnode for backfill — Alchemy free tier limits getLogs to 10-block ranges
   return 'https://ethereum-rpc.publicnode.com'
 }
 
