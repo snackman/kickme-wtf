@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPublicClient, http, isAddressEqual, type Address } from 'viem'
 import { mainnet } from 'viem/chains'
+import { rpcUrl } from '../lib/wagmi'
 import { KICKME_ADDRESS, KICKME_ABI, KICKME_DEPLOY_BLOCK } from '../lib/contract'
 
 export type HistoryEvent = {
@@ -65,7 +66,7 @@ function hydrateEvents(cached: CachedEvent[]): HistoryEvent[] {
 
 const client = createPublicClient({
   chain: mainnet,
-  transport: http('https://ethereum-rpc.publicnode.com'),
+  transport: http(rpcUrl),
 })
 
 // Event ABIs

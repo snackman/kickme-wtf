@@ -7,6 +7,7 @@ broadcast/
 
 # Environment variables
 .env
+secrets.md
 
 # IDE
 .idea/
@@ -25,3 +26,4 @@ frontend/test-results/
 # Bot state
 bot/bot-state.json
 bot/.env
+.vercel

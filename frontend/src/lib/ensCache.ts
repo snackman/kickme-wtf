@@ -1,5 +1,6 @@
 import { createPublicClient, http, type Address } from 'viem'
 import { mainnet } from 'viem/chains'
+import { rpcUrl } from './wagmi'
 import { normalize } from 'viem/ens'
 
 const CACHE_KEY = 'kickme_ens_cache_v2' // v2: don't cache failures
@@ -48,7 +49,7 @@ function saveCache() {
 
 const publicClient = createPublicClient({
   chain: mainnet,
-  transport: http('https://ethereum-rpc.publicnode.com'),
+  transport: http(rpcUrl),
 })
 
 // Reverse lookup: address -> ENS name
