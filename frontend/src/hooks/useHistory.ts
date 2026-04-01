@@ -93,13 +93,8 @@ export function useHistory(victim: Address | undefined) {
       const cache = loadCache()
       if (!cache) setIsLoading(true)
 
-      // Invalidate cache on manual refresh
-      if (refreshCount > 0 && cache) {
-        cache.updatedAt = 0
-      }
-
       try {
-        const { events: allEvents } = await fetchAllEvents()
+        const { events: allEvents } = await fetchAllEvents(refreshCount > 0)
         // Filter for this victim
         const victimEvents = allEvents.filter(e => isAddressEqual(e.victim, victim))
         setEvents(victimEvents)
@@ -158,12 +153,12 @@ async function getLogsChunked(
 }
 
 // Shared event fetching with caching
-async function fetchAllEvents(): Promise<{ events: HistoryEvent[], lastBlock: bigint }> {
+async function fetchAllEvents(forceRefresh = false): Promise<{ events: HistoryEvent[], lastBlock: bigint }> {
   const cache = loadCache()
   const currentBlock = await client.getBlockNumber()
 
-  // Use cache if fresh enough
-  if (cache && (Date.now() - cache.updatedAt) < CACHE_TTL) {
+  // Use cache if fresh enough (unless force refresh)
+  if (!forceRefresh && cache && (Date.now() - cache.updatedAt) < CACHE_TTL) {
     console.log('Using cached events:', cache.events.length)
     return { events: hydrateEvents(cache.events), lastBlock: BigInt(cache.lastBlock) }
   }
@@ -254,13 +249,8 @@ export function useRecentActivity() {
       const cache = loadCache()
       if (!cache) setIsLoading(true)
 
-      // Invalidate cache on manual refresh
-      if (refreshCount > 0 && cache) {
-        cache.updatedAt = 0
-      }
-
       try {
-        const { events: allEvents } = await fetchAllEvents()
+        const { events: allEvents } = await fetchAllEvents(refreshCount > 0)
         setEvents(allEvents.slice(0, 20))
       } catch (err) {
         console.error('Error fetching recent activity:', err)
