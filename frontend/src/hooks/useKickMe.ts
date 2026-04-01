@@ -1,6 +1,6 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
-import { KICKME_ADDRESS, KICKME_ABI, STICK_PRICE, KICK_PRICE } from '../lib/contract'
+import { KICKME_ADDRESS, KICKME_ABI } from '../lib/contract'
 import type { Address } from 'viem'
 
 export function useHasSign(address: Address | undefined) {
@@ -93,7 +93,7 @@ export function useStick() {
   const { switchChainAsync } = useSwitchChain()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
 
-  const stick = async (victim: Address, seed: bigint) => {
+  const stick = async (victim: Address, seed: bigint, value: bigint) => {
     try {
       await switchChainAsync({ chainId: mainnet.id })
     } catch (e) {
@@ -104,7 +104,7 @@ export function useStick() {
       abi: KICKME_ABI,
       functionName: 'stick',
       args: [victim, seed],
-      value: STICK_PRICE,
+      value,
       chainId: mainnet.id,
     })
   }
@@ -117,7 +117,7 @@ export function useKick() {
   const { switchChainAsync } = useSwitchChain()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
 
-  const kick = async (victim: Address) => {
+  const kick = async (victim: Address, value: bigint) => {
     try {
       await switchChainAsync({ chainId: mainnet.id })
     } catch (e) {
@@ -128,7 +128,7 @@ export function useKick() {
       abi: KICKME_ABI,
       functionName: 'kick',
       args: [victim],
-      value: KICK_PRICE,
+      value,
       chainId: mainnet.id,
     })
   }
