@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { useAllEvents } from '../hooks/useHistory'
-import { AddressDisplay } from '../components/AddressDisplay'
 import type { Address } from 'viem'
+import { AddressDisplay } from '../components/AddressDisplay'
+import { useAllEvents } from '../hooks/useHistory'
 
 export function Leaderboard() {
   const { events, isLoading } = useAllEvents()

@@ -27,7 +27,7 @@ type EventCache = {
   updatedAt: number
 }
 
-const CACHE_KEY = 'kickme_events_cache_v3'
+const CACHE_KEY = `kickme_events_${KICKME_ADDRESS}`
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes - refetch if older
 
 function loadCache(): EventCache | null {
