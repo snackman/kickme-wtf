@@ -238,12 +238,18 @@ export function useRecentActivity() {
     return []
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [refreshCount, setRefreshCount] = useState(0)
 
   useEffect(() => {
     const fetchRecent = async () => {
       // Only show loading if we have no cached data
       const cache = loadCache()
       if (!cache) setIsLoading(true)
+
+      // Invalidate cache on manual refresh
+      if (refreshCount > 0 && cache) {
+        cache.updatedAt = 0
+      }
 
       try {
         const { events: allEvents } = await fetchAllEvents()
@@ -256,9 +262,11 @@ export function useRecentActivity() {
     }
 
     fetchRecent()
-  }, [])
+  }, [refreshCount])
 
-  return { events, isLoading }
+  const refetch = () => setRefreshCount(c => c + 1)
+
+  return { events, isLoading, refetch }
 }
 
 export function useAllEvents() {

@@ -14,7 +14,7 @@ export function Home() {
   const [targetAddress, setTargetAddress] = useState<Address | null>(null)
   const [signSeed, setSignSeed] = useState(randomSeed)
   const { hasSign, signCount, kickCount, isLoading, refetch } = useVictimStats(targetAddress ?? undefined)
-  const { events: recentEvents, isLoading: recentLoading } = useRecentActivity()
+  const { events: recentEvents, isLoading: recentLoading, refetch: refetchRecent } = useRecentActivity()
 
   const handleAddressResolved = useCallback((address: Address | null) => {
     setTargetAddress(address)
@@ -60,14 +60,14 @@ export function Home() {
                   Click to view full details →
                 </p>
               </div>
-              <ActionButtons victim={targetAddress} hasSign={true} signSeed={signSeed} onSuccess={refetch} />
+              <ActionButtons victim={targetAddress} hasSign={true} signSeed={signSeed} onSuccess={() => { refetch(); refetchRecent(); }} />
             </div>
           ) : (
             <div style={{ textAlign: 'center' }}>
               <p style={{ color: '#888', marginBottom: '20px' }}>
                 ✨ This wallet is clean... for now
               </p>
-              <ActionButtons victim={targetAddress} hasSign={false} signSeed={signSeed} onSuccess={refetch} />
+              <ActionButtons victim={targetAddress} hasSign={false} signSeed={signSeed} onSuccess={() => { refetch(); refetchRecent(); }} />
             </div>
           )}
         </div>
