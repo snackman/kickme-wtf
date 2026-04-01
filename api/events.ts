@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { list } from '@vercel/blob'
+import { get } from '@vercel/blob'
 
 type StoredEvent = {
   type: 'stuck' | 'kicked'
@@ -56,18 +56,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let blobData: EventsBlob
 
     try {
-      const { blobs } = await list({ prefix: 'events.json', limit: 1 })
-      if (blobs.length === 0) {
+      const blob = await get('events.json', { access: 'private' })
+      if (!blob) {
         blobData = EMPTY_BLOB
       } else {
-        const response = await fetch(blobs[0].url, {
-          headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-        })
-        if (!response.ok) {
-          blobData = EMPTY_BLOB
-        } else {
-          blobData = await response.json() as EventsBlob
-        }
+        blobData = await blob.json() as EventsBlob
       }
     } catch {
       blobData = EMPTY_BLOB

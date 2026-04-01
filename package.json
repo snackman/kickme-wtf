@@ -1,7 +1,7 @@
 {
   "private": true,
   "dependencies": {
-    "@vercel/blob": "^1.0.0",
+    "@vercel/blob": "^2.3.0",
     "@vercel/node": "^5.0.0",
     "viem": "^2.7.0"
   }

@@ -234,7 +234,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Write to Vercel Blob
     await put('events.json', JSON.stringify(blob), {
+      access: 'private',
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: 'application/json',
     })
 

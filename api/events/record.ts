@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { list, put } from '@vercel/blob'
+import { get, put } from '@vercel/blob'
 import { createPublicClient, http, parseEventLogs, getAddress } from 'viem'
 import { mainnet } from 'viem/chains'
 
@@ -87,8 +87,8 @@ function getRpcUrl(): string {
 
 async function readCurrentBlob(): Promise<EventsBlob> {
   try {
-    const { blobs } = await list({ prefix: 'events.json', limit: 1 })
-    if (blobs.length === 0) {
+    const blob = await get('events.json', { access: 'private' })
+    if (!blob) {
       return {
         events: [],
         leaderboard: { mostStuck: [], mostKicked: [], topStickers: [], topKickers: [] },
@@ -97,11 +97,7 @@ async function readCurrentBlob(): Promise<EventsBlob> {
         eventCount: 0,
       }
     }
-    const response = await fetch(blobs[0].url, {
-      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-    })
-    if (!response.ok) throw new Error(`Blob fetch failed: ${response.status}`)
-    return await response.json() as EventsBlob
+    return await blob.json() as EventsBlob
   } catch {
     return {
       events: [],
@@ -219,7 +215,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Write back to blob
     await put('events.json', JSON.stringify(updatedBlob), {
+      access: 'private',
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: 'application/json',
     })
 
