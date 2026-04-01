@@ -6,7 +6,7 @@ export const config = createConfig({
   chains: [mainnet],
   connectors: [injected()],
   transports: {
-    [mainnet.id]: http('https://eth.drpc.org'),
+    [mainnet.id]: http('https://ethereum-rpc.publicnode.com'),
   },
 })
 

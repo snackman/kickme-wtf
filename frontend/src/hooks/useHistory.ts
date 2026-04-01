@@ -65,7 +65,7 @@ function hydrateEvents(cached: CachedEvent[]): HistoryEvent[] {
 
 const client = createPublicClient({
   chain: mainnet,
-  transport: http('https://eth.drpc.org'),
+  transport: http('https://ethereum-rpc.publicnode.com'),
 })
 
 // Event ABIs

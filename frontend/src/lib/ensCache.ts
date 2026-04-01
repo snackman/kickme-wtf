@@ -48,7 +48,7 @@ function saveCache() {
 
 const publicClient = createPublicClient({
   chain: mainnet,
-  transport: http('https://eth.drpc.org'),
+  transport: http('https://ethereum-rpc.publicnode.com'),
 })
 
 // Reverse lookup: address -> ENS name
