@@ -31,7 +31,7 @@ function LeaderboardSection({ title, color, entries, unit, linkToVictim }: {
                 <span style={{ flex: 1 }}>
                   <AddressDisplay address={addr as Address} />
                 </span>
-                <span style={{ color: '#888' }}>{count} {unit}</span>
+                <span style={{ color: '#888' }}>{count} {count === 1 ? unit.replace(/s$/, '') : unit}</span>
               </>
             )
             const style = {
