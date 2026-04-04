@@ -2,8 +2,8 @@ export const KICKME_ADDRESS = '0x6fCdfA445bF2752D4F38AB67F08c7eEDEfEaAed8' as co
 export const KICKME_DEPLOY_BLOCK = 24785768n // Block where the contract was deployed
 
 // On-chain minimum prices in wei (floor enforced by contract)
-export const STICK_PRICE_MIN = 420000000000000n  // 0.00042 ETH
-export const KICK_PRICE_MIN = 69000000000000n    // 0.000069 ETH
+export const STICK_PRICE_MIN = 1000000000n  // 1 gwei
+export const KICK_PRICE_MIN = 1000000000n   // 1 gwei
 
 // Charity info
 export const CHARITY_NAME = 'Stomp Out Bullying'

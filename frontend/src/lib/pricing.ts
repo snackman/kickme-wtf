@@ -2,8 +2,8 @@ import { parseEther } from 'viem'
 import { STICK_PRICE_MIN, KICK_PRICE_MIN } from './contract'
 
 // Target USD prices
-export const STICK_USD = 4.20
-export const KICK_USD = 0.69
+export const STICK_USD = 0.42
+export const KICK_USD = 0.069
 
 /**
  * Convert a USD amount to wei at the given ETH/USD rate.
