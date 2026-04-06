@@ -237,7 +237,7 @@ export function ActionButtons({ victim, hasSign, signSeed, onSuccess }: Props) {
             {kickLoading ? 'Kicking...' : 'Kick'}
           </span>
           <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
-            ${KICK_USD.toFixed(2)}
+            ${KICK_USD.toFixed(3)}
           </span>
           <span style={{ fontSize: '11px', opacity: 0.5 }}>
             ~{formatEther(effectiveKickPrice)} ETH
